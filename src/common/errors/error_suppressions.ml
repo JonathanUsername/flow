@@ -15,6 +15,7 @@
 open Severity
 open Span
 open Utils_js
+open Sys
 
 type error_suppressions = Loc.LocSet.t SpanMap.t
 type t = {
@@ -85,6 +86,14 @@ let check_locs (locs: Loc.t list) suppressions lint_kind severity_cover =
       lint_kind, severity_cover) locs
   in (suppression_state, consumed, suppressions)
 
+let whitelist_env = try getenv "FLOW_WHITELIST" with Not_found -> "";;
+let whitelist_re_list = if whitelist_env = "" then [] else Str.split (Str.regexp "++") whitelist_env;;
+let matches_whitelist_elem s1 s2 =
+    let re = Str.regexp s2
+    in
+        try ignore (Str.search_forward re s1 0); true
+        with Not_found -> false;;
+
 let check err severity_cover suppressions =
   let locs = Errors.locs_of_error err in
   let lint_kind =
@@ -103,7 +112,15 @@ let check err severity_cover suppressions =
         String_utils.is_substring "/node_modules/" (Loc.string_of_filename filename))
     | [] -> false
   in
-  let result = if is_in_dependency && (Option.is_some lint_kind)
+  let is_lint_warning = is_in_dependency && (Option.is_some lint_kind) in
+  let is_whitelisted = match Errors.infos_of_error err with
+    | (primary_loc,_)::_ ->
+      Option.value_map (Loc.source primary_loc) ~default:false ~f:(fun filename ->
+        List.exists (fun e ->  matches_whitelist_elem (Loc.string_of_filename filename) e) whitelist_re_list
+      )
+    | [] -> false
+  in
+  let result = if is_lint_warning || is_whitelisted
     then Off
     else result
   in (result, consumed, { suppressions; unused; unused_lint_suppressions; })
