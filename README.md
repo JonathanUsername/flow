@@ -1,3 +1,8 @@
+NB: For future Jon - Just use this for creating the changes.patch file that is then applied in the flow-bin repo.
+
+Go to the branch/release you want, try to apply the standard patch, if it conflicts, overwrite the old one in flow-bin, then run the build script.
+
+
 # Flow [![Build Status](https://travis-ci.org/facebook/flow.svg?branch=master)](https://travis-ci.org/facebook/flow) [![Windows Build Status](https://ci.appveyor.com/api/projects/status/thyvx6i5nixtoocm/branch/master?svg=true)](https://ci.appveyor.com/project/Facebook/flow/branch/master)
 
 Flow is a static typechecker for JavaScript. To find out more about Flow, check out [flow.org](https://flow.org/).
