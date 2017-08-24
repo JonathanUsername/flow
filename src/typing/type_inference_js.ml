@@ -15,6 +15,8 @@ module FlowError = Flow_error
 module ImpExp = Import_export
 module Utils = Utils_js
 
+open Sys
+
 (**********)
 (* Driver *)
 (**********)
@@ -42,23 +44,31 @@ let infer_core cx statements =
     let loc = Loc.({ none with source = Some (Context.file cx) }) in
     Flow_js.add_output cx FlowError.(EInternal (loc, UncaughtException exc))
 
+let whitelist_env = try getenv "FLOW_WHITELIST" with Not_found -> "";;
+let whitelist_re_list = if whitelist_env = "" then [] else Str.split (Str.regexp "++") whitelist_env;;
+let matches_whitelist_elem s1 s2 =
+    let re = Str.regexp s2
+    in
+        try ignore (Str.search_forward re s1 0); true
+        with Not_found -> false;;
 (* There's a .flowconfig option to specify suppress_comments regexes. Any
  * comments that match those regexes will suppress any errors on the next line
  *)
 let scan_for_error_suppressions =
-  let should_suppress suppress_comments comment =
+  let should_suppress suppress_comments comment  =
     List.exists (fun r -> Str.string_match r comment 0) suppress_comments
 
   in fun cx comments ->
     let suppress_comments = Context.suppress_comments cx in
     let should_suppress = should_suppress suppress_comments in
+    let in_whitelist (loc: Loc.t) = List.exists (fun e -> matches_whitelist_elem (Loc.to_string loc) e) whitelist_re_list in
 
     (* Bail immediately if we're not using error suppressing comments *)
     if suppress_comments <> []
     then List.iter (function
       | loc, Ast.Comment.Block comment
       | loc, Ast.Comment.Line comment when should_suppress comment ->
-          Context.add_error_suppression cx loc
+          if not (in_whitelist loc) then Context.add_error_suppression cx loc else ()
       | _ -> ()) comments
 
 type 'a located = {
