@@ -22,4 +22,4 @@ let to_string = function
 (* let in_whitelist elem = is_in_whitelist (to_string elem) *)
 
 let loc_in_whitelist (elem: Loc.t) = is_in_whitelist (Loc.to_string elem)
-let filename_in_whitelist elem = is_in_whitelist (Loc.string_of_filename elem)
+let filename_in_whitelist elem = is_in_whitelist (File_key.to_string elem)
