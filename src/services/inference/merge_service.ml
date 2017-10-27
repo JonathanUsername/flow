@@ -1,23 +1,20 @@
 (**
  * Copyright (c) 2013-present, Facebook, Inc.
- * All rights reserved.
  *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the "flow" directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
  *)
 
 open Utils_js
 module Reqs = Merge_js.Reqs
 
 
-type 'a merge_results = (filename * ('a, exn) result) list
+type 'a merge_results = (File_key.t * ('a, exn) result) list
 type 'a merge_job =
   options:Options.t ->
-  'a merge_results * filename list ->
-  filename list ->
-  'a merge_results * filename list
+  'a merge_results * File_key.t list ->
+  File_key.t list ->
+  'a merge_results * File_key.t list
 
 (* To merge the contexts of a component with their dependencies, we call the
    functions `merge_component_strict` and `restore` defined in merge_js.ml
@@ -44,86 +41,75 @@ type 'a merge_job =
    by requires (when implementations of such requires are not found).
 *)
 let reqs_of_component ~options component required =
-  let sig_cache = new Context_cache.sig_context_cache in
-
-  let orig_dep_cxs, dep_cxs, reqs =
-    List.fold_left (fun (orig_dep_cxs, dep_cxs, reqs) req ->
+  let dep_cxs, reqs =
+    List.fold_left (fun (dep_cxs, reqs) req ->
       let r, loc, resolved_r, file = req in
       Module_js.(match get_file Expensive.ok resolved_r with
-      | Some (Loc.ResourceFile f) ->
-        orig_dep_cxs, dep_cxs,
-        Reqs.add_res (r, loc, f, file) reqs
+      | Some (File_key.ResourceFile f) ->
+        dep_cxs, Reqs.add_res (r, loc, f, file) reqs
       | Some dep ->
         let info = get_info_unsafe ~audit:Expensive.ok dep in
         if info.checked && info.parsed then
           (* checked implementation exists *)
+          let m = Files.module_ref dep in
           if List.mem dep component then
             (* impl is part of component *)
-            orig_dep_cxs, dep_cxs,
-            Reqs.add_impl (dep, Files.module_ref dep, r, file) reqs
+            dep_cxs, Reqs.add_impl (dep, m, r, file) reqs
           else
             (* look up impl sig_context *)
             let leader = Context_cache.find_leader dep in
-            match sig_cache#find leader with
-            | Some dep_cx ->
-              orig_dep_cxs, dep_cxs,
-              Reqs.add_dep_impl (dep_cx, Files.module_ref dep, r, file) reqs
-            | None ->
-              let orig_dep_cx, dep_cx =
-                sig_cache#read ~audit:Expensive.ok ~options leader in
-              orig_dep_cx::orig_dep_cxs, dep_cx::dep_cxs,
-              Reqs.add_dep_impl (dep_cx, Files.module_ref dep, r, file) reqs
+            let dep_cx = Context_cache.find_sig ~options leader in
+            dep_cx::dep_cxs, Reqs.add_dep_impl (dep_cx, m, r, file) reqs
         else
           (* unchecked implementation exists *)
-          orig_dep_cxs, dep_cxs,
-          Reqs.add_unchecked (r, loc, file) reqs
+          dep_cxs, Reqs.add_unchecked (r, loc, file) reqs
       | None ->
         (* implementation doesn't exist *)
-        orig_dep_cxs, dep_cxs,
-        Reqs.add_decl (r, loc, resolved_r, file) reqs
+        dep_cxs, Reqs.add_decl (r, loc, resolved_r, file) reqs
       )
-    ) ([], [], Reqs.empty) required
+    ) ([], Reqs.empty) required
   in
 
-  let orig_master_cx, master_cx =
-    sig_cache#read ~audit:Expensive.ok ~options Loc.Builtins
-  in
+  let master_cx = Context_cache.find_sig ~options File_key.Builtins in
 
-  orig_master_cx, master_cx, orig_dep_cxs, dep_cxs, reqs
+  master_cx, dep_cxs, reqs
 
 let merge_strict_context ~options component =
-  let required, require_loc_maps =
-    List.fold_left (fun (required, require_loc_maps) file ->
-      let require_loc_map = Parsing_service_js.get_requires_unsafe file in
+  let required, file_sigs =
+    List.fold_left (fun (required, file_sigs) file ->
+      let file_sig = Parsing_service_js.get_file_sig_unsafe file in
+      let require_loc_map = File_sig.(require_loc_map file_sig.module_sig) in
       let required = SMap.fold (fun r loc ->
         let resolved_r = Module_js.find_resolved_module ~audit:Expensive.ok
           file r in
         List.cons (r, loc, resolved_r, file)
       ) require_loc_map required in
-      required, FilenameMap.add file require_loc_map require_loc_maps
+      required, FilenameMap.add file file_sig file_sigs
     ) ([], FilenameMap.empty) component in
 
-  let orig_master_cx, master_cx, orig_dep_cxs, dep_cxs, file_reqs =
+  let master_cx, dep_cxs, file_reqs =
     reqs_of_component ~options component required
   in
 
   let metadata = Context.metadata_of_options options in
-  let lint_severities = Some (Options.lint_severities options) in
+  let lint_severities = Options.lint_severities options in
+  let strict_mode = Options.strict_mode options in
   let cx = Merge_js.merge_component_strict
-    ~metadata ~lint_severities ~require_loc_maps
+    ~metadata ~lint_severities ~strict_mode ~file_sigs
     ~get_ast_unsafe:Parsing_service_js.get_ast_unsafe
     ~get_docblock_unsafe:Parsing_service_js.get_docblock_unsafe
+    ~do_gc:(Options.is_debug_mode options)
     component file_reqs dep_cxs master_cx
   in
-  Merge_js.restore cx orig_dep_cxs orig_master_cx;
 
-  cx, orig_master_cx
+  cx, master_cx
 
 (* Variation of merge_strict_context where requires may not have already been
    resolved. This is used by commands that make up a context on the fly. *)
 let merge_contents_context options file ast info ~ensure_checked_dependencies =
-  let require_loc_map = Parsing_service_js.calc_requires ~ast in
+  let file_sig = Parsing_service_js.calc_file_sig ~ast in
   let resolved_rs, required =
+    let require_loc_map = File_sig.(require_loc_map file_sig.module_sig) in
     SMap.fold (fun r loc (resolved_rs, required) ->
       let resolved_r = Module_js.imported_module
         ~options
@@ -133,20 +119,25 @@ let merge_contents_context options file ast info ~ensure_checked_dependencies =
       (r, loc, resolved_r, file) :: required
     ) require_loc_map (Modulename.Set.empty, [])
   in
-  let require_loc_maps = FilenameMap.singleton file require_loc_map in
+  let file_sigs = FilenameMap.singleton file file_sig in
 
   ensure_checked_dependencies resolved_rs;
 
   let component = [file] in
 
-  let _, master_cx, _, dep_cxs, file_reqs =
-    reqs_of_component ~options component required
+  let master_cx, dep_cxs, file_reqs =
+    begin try reqs_of_component ~options component required with
+      | Key_not_found _  ->
+        failwith "not all dependencies are ready yet, aborting..."
+      | e -> raise e
+    end
   in
 
   let metadata = Context.metadata_of_options options in
-  let lint_severities = Some (Options.lint_severities options) in
+  let lint_severities = Options.lint_severities options in
+  let strict_mode = Options.strict_mode options in
   let cx = Merge_js.merge_component_strict
-    ~metadata ~lint_severities ~require_loc_maps
+    ~metadata ~lint_severities ~strict_mode ~file_sigs
     ~get_ast_unsafe:(fun _ -> ast)
     ~get_docblock_unsafe:(fun _ -> info)
     component file_reqs dep_cxs master_cx
@@ -172,12 +163,12 @@ let merge_strict_component ~options (merged_acc, unchanged_acc) component =
   *)
   let info = Module_js.get_info_unsafe ~audit:Expensive.ok file in
   if info.Module_js.checked then (
-    let cx, orig_master_cx = merge_strict_context ~options component in
+    let cx, master_cx = merge_strict_context ~options component in
 
     let module_refs = List.rev_map Files.module_ref component in
     let md5 = Merge_js.ContextOptimizer.sig_context cx module_refs in
 
-    Merge_js.clear_master_shared cx orig_master_cx;
+    Merge_js.clear_master_shared cx master_cx;
 
     let errors = Context.errors cx in
     let suppressions = Context.error_suppressions cx in
@@ -205,6 +196,30 @@ let merge_strict_component ~options (merged_acc, unchanged_acc) component =
     (file, Ok (errors, suppressions, severity_cover)) :: merged_acc,
     unchanged_acc
 
+(* Wrap a potentially slow operation with a timer that fires every interval seconds. When it fires,
+ * it calls ~on_timer. When the operation finishes, the timer is cancelled *)
+let with_async_logging_timer ~interval ~on_timer ~f =
+  let start_time = Unix.gettimeofday () in
+  let timer = ref None in
+  let cancel_timer () = Option.iter ~f:Timer.cancel_timer !timer in
+  let rec run_timer ?(first_run=false) () =
+    if not first_run
+    then begin
+      let run_time = Unix.gettimeofday () -. start_time in
+      on_timer run_time
+    end;
+    timer := Some (Timer.set_timer ~interval ~callback:run_timer)
+  in
+  (* Timer is unimplemented in Windows. *)
+  if not Sys.win32 then run_timer ~first_run:true ();
+  let ret = begin try f ()
+  with e ->
+    cancel_timer ();
+    raise e
+  end in
+  cancel_timer ();
+  ret
+
 let merge_strict_job ~options ~job (merged, unchanged) elements =
   List.fold_left (fun (merged, unchanged) -> function
     | Merge_stream.Skip file ->
@@ -220,19 +235,28 @@ let merge_strict_job ~options ~job (merged, unchanged) elements =
       (* A component may have several files: there's always at least one, and
          multiple files indicate a cycle. *)
       let files = component
-      |> List.map string_of_filename
+      |> List.map File_key.to_string
       |> String.concat "\n\t"
       in
-      try Profile_utils.checktime ~options ~limit:1.0
-        ~msg:(fun t -> spf "[%d] perf: merged %s in %f" (Unix.getpid()) files t)
-        ~log:(fun merge_time ->
-          let length = List.length component in
-          let leader = List.hd component |> string_of_filename in
-          Flow_server_profile.merge ~length ~merge_time ~leader)
-        ~f:(fun () ->
-          (* prerr_endlinef "[%d] MERGE: %s" (Unix.getpid()) files; *)
-          job ~options (merged, unchanged) component
+
+      try with_async_logging_timer
+        ~interval:15.0
+        ~on_timer:(fun run_time ->
+          Hh_logger.info "[%d] Slow MERGE (%f seconds so far): %s" (Unix.getpid()) run_time files;
+          Hh_logger.info "Merging" (* Log this to keep the Tail status stuff working *)
         )
+        ~f:(fun () ->
+          Profile_utils.checktime ~options ~limit:1.0
+            ~msg:(fun t -> spf "[%d] perf: merged %s in %f" (Unix.getpid()) files t)
+            ~log:(fun merge_time ->
+              let length = List.length component in
+              let leader = List.hd component |> File_key.to_string in
+              Flow_server_profile.merge ~length ~merge_time ~leader)
+            ~f:(fun () ->
+              (* prerr_endlinef "[%d] MERGE: %s" (Unix.getpid()) files; *)
+              job ~options (merged, unchanged) component
+            )
+          )
       with
       | SharedMem_js.Out_of_shared_memory
       | SharedMem_js.Heap_full

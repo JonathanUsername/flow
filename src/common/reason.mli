@@ -1,11 +1,8 @@
 (**
  * Copyright (c) 2013-present, Facebook, Inc.
- * All rights reserved.
  *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the "flow" directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
  *)
 
 val mk_id: unit -> int
@@ -15,6 +12,7 @@ type reason_desc =
   | RStringLit of string
   | RNumberLit of string
   | RBooleanLit of bool
+  | RMatchingProp of string * reason_desc
   | RObject
   | RObjectLit
   | RObjectType
@@ -76,17 +74,18 @@ type reason_desc =
   | ROpaqueType of string
   | RTypeParam of string * reason_desc
   | RMethodCall of string option
-  | RParameter of string
-  | RRestParameter of string
+  | RParameter of string option
+  | RRestParameter of string option
   | RIdentifier of string
   | RIdentifierAssignment of string
-  | RPropertyAssignment of string
+  | RPropertyAssignment of string option
   | RProperty of string option
   | RShadowProperty of string
   | RPropertyOf of string * reason_desc
   | RPropertyIsAString of string
   | RMissingProperty of string option
   | RUnknownProperty of string option
+  | RUndefinedProperty of string
   | RSomeProperty
   | RNameProperty of reason_desc
   | RMissingAbstract of reason_desc
@@ -128,6 +127,7 @@ type reason_desc =
   | RReactChildren
   | RReactChildrenOrType of reason_desc
   | RReactChildrenOrUndefinedOrType of reason_desc
+  | RReactSFC
 
 and reason_desc_function =
   | RAsync
@@ -159,7 +159,7 @@ val json_of_loc: ?strip_root:Path.t option -> Loc.t -> Hh_json.json
 
 val locationless_reason: reason_desc -> reason
 
-val func_reason: Ast.Function.t -> Loc.t -> reason
+val func_reason: Loc.t Ast.Function.t -> Loc.t -> reason
 
 val is_internal_name: string -> bool
 val internal_name: string -> string
@@ -186,7 +186,7 @@ val is_lib_reason: reason -> bool
 val is_blamable_reason: reason -> bool
 val reasons_overlap: reason -> reason -> bool
 
-val string_of_source: ?strip_root:Path.t option -> Loc.filename -> string
+val string_of_source: ?strip_root:Path.t option -> File_key.t -> string
 val string_of_reason: ?strip_root:Path.t option -> reason -> string
 val json_of_reason: ?strip_root:Path.t option -> reason -> Hh_json.json
 val dump_reason: ?strip_root:Path.t option -> reason -> string

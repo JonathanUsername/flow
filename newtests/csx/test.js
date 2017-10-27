@@ -1,6 +1,6 @@
 /*
  * @flow
- * @lint-ignore-every LINE_WRAP1
+ * @lint-ignore-every LINEWRAP1
  */
 
 
@@ -63,7 +63,7 @@ export default suite(({addFile, addFiles, addCode}) => [
       `
         test.js:7
           7:       <Bar x={23} />;
-                   ^^^^^^^^^^^^^^ props of JSX element \`Bar\`. This type is incompatible with
+                   ^^^^^^^^^^^^^^ props of JSX element \`Bar\`. This type is incompatible with the expected param type of
           6:       function Bar(props: Props) {}
                                        ^^^^^ object type
           Property \`x\` is incompatible:
@@ -71,7 +71,7 @@ export default suite(({addFile, addFiles, addCode}) => [
                                ^^ number. This type is incompatible with
               5:       type Props = {|x: string|};
                                          ^^^^^^ string
-      `
+      `,
     ),
   ]),
   test('Should raise no errors if a JSX spread provides all required attributes for an inexact type', [
@@ -94,13 +94,14 @@ export default suite(({addFile, addFiles, addCode}) => [
     `)
     .newErrors(  // TODO should not raise any errors.
       `
-        test.js:8      8:       <Bar {...params} />;
+        test.js:8
+          8:       <Bar {...params} />;
                    ^^^^^^^^^^^^^^^^^^^ JSX desugared to \`Bar(...)\`
           8:       <Bar {...params} />;
                    ^^^^^^^^^^^^^^^^^^^ props of JSX element \`Bar\`. Inexact type is incompatible with exact type
           6:       function Bar(props: Props) {}
                                        ^^^^^ exact type: object type
-      `
+      `,
     ),
   ]),
   test('Should raise no errors if two separate JSX spreads together provide all required attributes', [
@@ -134,8 +135,8 @@ export default suite(({addFile, addFiles, addCode}) => [
         test.js:8
           8:       <Bar {...params} />;
                    ^^^^^^^^^^^^^^^^^^^ props of JSX element \`Bar\`. This type is incompatible with the expected param type of
-          5:       type Props = {|x: string|};
-                                ^^^^^^^^^^^^^ object type
+          6:       function Bar(props: Props) {}
+                                       ^^^^^ object type
           Property \`x\` is incompatible:
               7:       const params = {x: 23};
                                           ^^ number. This type is incompatible with
@@ -218,12 +219,20 @@ export default suite(({addFile, addFiles, addCode}) => [
       `
         test.js:9
           9:       <Foo><Bar /></Foo>
-                   ^^^^^ JSX desugared to \`Foo(...)\`
-          9:       <Foo><Bar /></Foo>
-                        ^^^^^^^ number. This type is incompatible with
-          5:       type FooProps = {|children: Array<string>|};
-                                                     ^^^^^^ string
-      `
+                   ^^^^^ props of JSX element \`Foo\`. This type is incompatible with the expected param type of
+          6:       function Foo(props: FooProps) {}
+                                       ^^^^^^^^ object type
+          Property \`children\` is incompatible:
+              9:       <Foo><Bar /></Foo>
+                       ^^^^^ JSX element \`Foo\`. Has some incompatible type argument with
+              5:       type FooProps = {|children: Array<string>|};
+                                                   ^^^^^^^^^^^^^ array type
+              Type argument \`T\` is incompatible:
+                  9:       <Foo><Bar /></Foo>
+                                ^^^^^^^ number. This type is incompatible with
+                  5:       type FooProps = {|children: Array<string>|};
+                                                             ^^^^^^ string
+      `,
     ),
   ]),
   test('Should strip whitespace from multiline strings', [
@@ -260,20 +269,26 @@ export default suite(({addFile, addFiles, addCode}) => [
       `
         test.js:7
           7:       <Bar>{42}</Bar>
-                   ^^^^^ JSX desugared to \`Bar(...)\`
-          5:       type Props = {|children: ['A']|};
-                                             ^^^ string literal \`A\`. This type is incompatible with
-          7:       <Bar>{42}</Bar>
-                         ^^ number
+                   ^^^^^ props of JSX element \`Bar\`. This type is incompatible with the expected param type of
+          6:       function Bar(props: Props) {}
+                                       ^^^^^ object type
+          Property \`children\` is incompatible:
+              5:       type Props = {|children: ['A']|};
+                                                 ^^^ string literal \`A\`. This type is incompatible with
+              7:       <Bar>{42}</Bar>
+                             ^^ number
 
         test.js:7
           7:       <Bar>{42}</Bar>
-                   ^^^^^ JSX desugared to \`Bar(...)\`
-          7:       <Bar>{42}</Bar>
-                         ^^ number. This type is incompatible with
-          5:       type Props = {|children: ['A']|};
-                                             ^^^ string literal \`A\`
-      `
+                   ^^^^^ props of JSX element \`Bar\`. This type is incompatible with the expected param type of
+          6:       function Bar(props: Props) {}
+                                       ^^^^^ object type
+          Property \`children\` is incompatible:
+              7:       <Bar>{42}</Bar>
+                             ^^ number. This type is incompatible with
+              5:       type Props = {|children: ['A']|};
+                                                 ^^^ string literal \`A\`
+      `,
     ),
   ]),
 ]);

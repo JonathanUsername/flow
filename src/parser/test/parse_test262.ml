@@ -1,11 +1,8 @@
 (**
  * Copyright (c) 2013-present, Facebook, Inc.
- * All rights reserved.
  *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the "flow" directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
  *)
 
 type verbose_mode =
@@ -100,7 +97,7 @@ let files_of_path path =
   ) []
   |> List.rev
 
-let print_error ~strip_root (filename, use_strict) err =
+let print_name ~strip_root (filename, use_strict) =
   let filename = match strip_root with
   | Some root ->
     let len = String.length root in
@@ -109,12 +106,14 @@ let print_error ~strip_root (filename, use_strict) err =
   in
   let strict = if use_strict then "(strict mode)" else "(default)" in
   let cr = if Unix.isatty Unix.stdout then "\r" else "" in
+  Printf.printf "%s%s %s\n%!" cr filename strict
+
+let print_error err =
   match err with
   | Missing_parse_error ->
-    Printf.printf "%s%s %s\n  Missing parse error\n%!" cr filename strict
+    Printf.printf "  Missing parse error\n%!"
   | Unexpected_parse_error (loc, err) ->
-    Printf.printf "%s%s %s\n  %s at %s\n%!"
-      cr filename strict (Parse_error.PP.error err) (Loc.to_string loc)
+    Printf.printf "  %s at %s\n%!" (Parse_error.PP.error err) (Loc.to_string loc)
 
 module Frontmatter = struct
   type t = {
@@ -284,7 +283,7 @@ let run_test (name, frontmatter, content) =
   let parse_options = Parser_env.({ default_parse_options with use_strict }) in
   let (_ast, errors) = Parser_flow.program_file
     ~fail:false ~parse_options:(Some parse_options)
-    content (Some (Loc.SourceFile filename)) in
+    content (Some (File_key.SourceFile filename)) in
   let result = match errors, Frontmatter.negative_phase frontmatter with
   | [], Some "early" ->
     (* expected a parse error, didn't get it *)
@@ -307,16 +306,19 @@ let incr_result (passed, failed) did_pass =
   if did_pass then succ passed, failed
   else passed, succ failed
 
-let fold_test ~strip_root ~bar
+let fold_test ~verbose ~strip_root ~bar
     (passed_acc, failed_acc, features_acc)
     (name, frontmatter, content) =
+
+  if verbose then print_name ~strip_root name;
   let passed =
     let { name; result } = run_test (name, frontmatter, content) in
     match result with
     | Ok _ -> true
     | Error err ->
       Option.iter ~f:(Progress_bar.clear (passed_acc, failed_acc)) bar;
-      print_error ~strip_root name err;
+      if not verbose then print_name ~strip_root name;
+      print_error err;
       false
   in
   let passed_acc, failed_acc = incr_result (passed_acc, failed_acc) passed in
@@ -361,7 +363,7 @@ let main () =
     else Some (Progress_bar.make ~chunks:40 ~frequency:0.1 test_count) in
 
   let (passed, failed, results_by_feature) = List.fold_left
-    (fold_test ~strip_root ~bar)
+    (fold_test ~verbose ~strip_root ~bar)
     (0, 0, SMap.empty)
     tests in
 

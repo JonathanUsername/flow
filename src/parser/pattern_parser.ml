@@ -1,11 +1,8 @@
-(*
+(**
  * Copyright (c) 2013-present, Facebook, Inc.
- * All rights reserved.
  *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the "flow" directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
  *)
 
 open Token
@@ -24,7 +21,7 @@ module Pattern
   let rec object_from_expr =
     let rec properties env acc = Ast.Expression.Object.(function
       | [] -> List.rev acc
-      | Property (loc, { Property.key; value; shorthand; _ })::remaining ->
+      | Property (loc, { Property.key; value; shorthand; _method; _ })::remaining ->
           let key = match key with
           | Property.Literal lit -> Pattern.Object.Property.Literal lit
           | Property.Identifier id -> Pattern.Object.Property.Identifier id
@@ -32,7 +29,9 @@ module Pattern
           | Property.Computed expr -> Pattern.Object.Property.Computed expr
           in
           let pattern = match value with
-          | Property.Init t -> from_expr env t
+          | Property.Init t ->
+              if _method then error_at env (fst t, Parse_error.MethodInDestructuring);
+              from_expr env t
           | Property.Get (loc, f)
           | Property.Set (loc, f) ->
             (* these should never happen *)

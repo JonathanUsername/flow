@@ -1,3 +1,168 @@
+### 0.57.3
+
+Notable bug fixes:
+* Fixed a race condition which was causing the Flow server to hang during merge
+* Rebuilt the Windows binary
+
+### 0.57.2
+
+Misc:
+* Reverted the change which stopped call properties from flowing to object type dictionaries
+
+### 0.57.1
+
+Notable bug fixes:
+* Fixed a crash when a file goes from parsable to unparsable
+* Fixed a server crash when a client dies before receiving a response
+
+Misc:
+* Added logging to show which components take a long time to merge
+
+### 0.57.0
+
+Likely to cause new Flow errors:
+* We've [manually enumerated](https://github.com/facebook/flow/blob/1c9d9486c07dd51853107621c686b7b30b7134f8/lib/react-dom.js#L172) all the JSX intrinsics, so Flow might notice if you're misusing an intrinsic.
+* `$Diff`'s implementation was rewritten. It should behave mostly the same, but will error on `$Diff<ObjA, {x: string}>` if `ObjA` doesn't have a property `x`
+
+New Features:
+* Flow will now only check the files in `node_modules/` which are direct or transitive dependencies of the non-`node_modules` code.
+
+Notable bug fixes:
+* A handful of fixes for `flow ide` on Windows
+* Fixed a few bugs that would cause `flow server` to crash when `flow ide` exits
+* Fixed a regression in v0.56.0 which caused Flow to crash on `import type *` syntax
+* Fixed `$ObjMap`'s behavior on optional properties
+* Various fixes for type destructors (like `$PropertyType`, `$Diff`, and `$ObjMap`)
+* Object type indexers no longer include call properties. So `{[string]: boolean}` is no longer a subtype of `{(number): string}`.
+* Fixed a bug where circular type imports would miss errors involving union types in rare cases.
+
+Misc:
+* Updated Flow headers and license file from BSD3 to MIT
+* `flow server` will now write to a log file in addition to stderr
+* `flow ls` will now list the `.flowconfig`
+* `flow ls` will now list lib files, even if `--all` is not set
+* `flow ls --imaginary` will list nonexistent files. It's useful for speculating whether or not Flow would care about a file if it existed.
+* Added `flow force-recheck --focus` which tells a lazy server to start caring about certain files
+* Various small error message fixes
+* Lots of libdef updates! Thanks everyone for the contributions!
+
+### 0.56.0
+
+New Features:
+
+* Added a `$Rest<A,B>` type, which models the semantics of object rest
+* Added support for `null` prototypes, a la Object.create(null)
+* Added support `__proto__` property in object literals and object type annotations
+
+Notable bug fixes:
+
+* Improved support for React higher-order components, e.g. Relay fragment containers
+* Improved performance of `flow focus-check` for multiple files
+* Fixed type-at-post support for $ReadOnlyArray types
+* Fixed many cases where error messages were reported far away from the root cause.
+* Fixed find-refs for named exports
+
+Misc:
+
+* Added experimental lazy mode for IDEs
+* Added `<VERSION>` token for `suppress_comment` option in `.flowconfig`
+* Removed support for $Abstract utility type
+* Removed support for `flow typecheck-contents --graphml`
+
+
+### 0.55.0
+
+Likely to cause new Flow errors:
+
+* Fixed a bug that caused unsoundness with `$ObjMap`.
+
+New Features:
+
+* Flow is now capable of servicing some requests while it is rechecking. This should improve the IDE experience on large codebases.
+* Added $Call utility type.
+* Added $Compose and $ComposeReverse utility types.
+* Added support for spreading `mixed` into an object type.
+
+Notable bug fixes:
+
+* Improve results from the find-refs command.
+* Allow null and undefined as React.createElement() config (fixes #4658).
+
+Misc:
+
+* Miscellaneous code cleanup.
+* Located error messages related to functions at only the signature, rather than the entire range of the function body.
+* Improved error messages when `this` types are incompatible.
+* Properly check subtype relationships between callable objects.
+* Fixed a bug that caused `mixed` not to be properly printed from `type-at-pos`.
+* Improved error messages regarding incompatible Array type parameters.
+* Preserve some inference information across module boundaries.
+* Support assignments to shorthand method properties in object literals.
+
+Typedefs:
+
+* Added captureStream() to HTMLCanvasElement and HTMLMediaElement.
+* Added HTMLOptGroupElement return type for document.createElement().
+* Added Recoverable and context to the `repl` module.
+* Fixed return type for AudioContext.createMediaStreamDestination().
+
+Parser:
+
+* Various fixes to improve test262 compliance:
+  * Correctly disallowed various illegal constructs in destructuring patterns.
+  * Allow destructuring in `catch`.
+  * Added \u2028 and \u2029 to the list of line terminators.
+  * Allow unicode escape codes in identifiers.
+* Improved parse errors when using private properties outside of classes.
+* Disallowed reserved words as function param names in types (e.g. `(switch: number) => void`).
+
+### 0.54.1
+
+Notable bug fixes:
+ * Fixed an issue where the server becomes temporarily unresponsive after a recheck and the client consumes all its retries.
+
+### 0.54.0
+
+Likely to cause new Flow errors:
+* Extending a polymorphic class must now explicitly specify the parent class's type args. That is, `class A<T> {}; class B extends A {}` is now an error, but `class C extends A<string> {}` or `class D<T> extends A<T> {}` is ok.
+* Improved accuracy of type checking calls of built-in methods (e.g. Object, Array, Promise)
+
+Notable Changes:
+* Implemented private class fields, part of the [Class Fields](https://github.com/tc39/proposal-class-fields) proposal.
+* Implemented "phantom" types (e.g. `type T<Phantom> = any; type X = T<string>; type Y = T<number>`, where `X` and `Y` are incompatible even though `T` doesn't use `Phantom`)
+* Unused suppression errors are now warnings instead
+* Improved errors involving polymorphic types, so that they now point to the source of the conflict, rather than the nested type args that are incompatible. This was a major source of errors in files other than where the problem was.
+* Improved errors involving structural subtyping, so that they now reference the objects that are incompatible in addition to the incompatible properties
+* Improved errors when an inexact object type flows into an exact type
+* Made rest parameters in object destructuring patterns sealed, and exact if possible
+* Improved definitions for some node `fs` functions
+* Improved performance by removing unnecessary caching
+
+Misc:
+* Improved accuracy of type checking of React children in React.createClass
+* Fixed a bug related to instantiating a polymorphic type (e.g. `type t = T<U>`) with empty type args (e.g. `var x: T<>`)
+* Fixed polarity checking for property maps
+* Fixed a bug where polymorphic types were incorrectly checked for equality
+* Improved React definitions
+* Added a FLOW_TEMP_DIR env, equivalent to passing --temp-dir
+* Added a minimal libdef that defines the few things Flow can't run without, even when using no_flowlibs=true
+
+Parser:
+* Added `flow ast --strict` to parse in strict mode without "use strict"
+* Added support for the RegExp dotAll ('s' flag) [proposal](https://github.com/tc39/proposal-regexp-dotall-flag)
+* Added support for the private class fields [proposal](https://github.com/tc39/proposal-class-fields)
+* Added support for destructuring defaults in assignments (e.g. given `({ x = 1 } = {})`, `x` is 1)
+* Fixed issues related to `let`, `yield`, `await`, `async`, `super` and other reserved words
+* Fixed issues related to declarations in statement positions
+* Fixed issues related to destructuring patterns
+* Fixed issues related to IdentifierReferences, like shorthand object notation
+* Fixed issues related to class parsing, particularly `new.target` and async methods
+
+
+### 0.53.1
+
+Fixed a bug that sometimes crashed the server during recheck
+
 ### 0.53.0
 
 This release includes major changes to Flow's model for React. The following
@@ -29,7 +194,7 @@ Likely to cause new Flow errors:
 
 * Flow used to completely ignore the type of React children in many
   places. Intrinsic elements did not check the type of their children (like
-  <div>), the type specified by components for React children would be ignored
+  `<div>`), the type specified by components for React children would be ignored
   when you created React elements, and the React.Children API was typed as
   any.
 

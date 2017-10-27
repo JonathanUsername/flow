@@ -1,11 +1,8 @@
 (**
  * Copyright (c) 2013-present, Facebook, Inc.
- * All rights reserved.
  *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the "flow" directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
  *)
 
 open ServerEnv
@@ -17,23 +14,20 @@ module Server_files = Server_files_js
 exception State_not_found
 
 module type SERVER_PROGRAM = sig
-  val init : focus_targets:Loc.filename list option -> genv -> (Profiling_js.finished * env)
+  val init : focus_targets:FilenameSet.t option -> genv -> (Profiling_js.finished * env)
   val check_once : genv -> env ->
     Errors.ErrorSet.t * (* errors *)
     Errors.ErrorSet.t * (* warnings *)
     (Errors.error * Loc.LocSet.t) list (* suppressed errors *)
   (* filter and relativize updated file paths *)
   val process_updates : genv -> env -> SSet.t -> FilenameSet.t
-  val recheck: genv -> env -> FilenameSet.t -> env
+  val recheck: genv -> env ->
+    ?force_focus:bool -> FilenameSet.t -> env
   val get_watch_paths: Options.t -> Path.t list
   val name: string
   val handle_client : genv -> env -> client -> env
-  val handle_persistent_client : genv -> env -> Persistent_connection.single_client -> env
-  val collate_errors_separate_warnings :
-    ServerEnv.env ->
-    Errors.ErrorSet.t * (* errors *)
-      Errors.ErrorSet.t FilenameMap.t * (* warnings *)
-      (Errors.error * Loc.LocSet.t) list (* suppressed errors *)
+  val handle_persistent_client : genv -> env ->
+    Persistent_connection.single_client -> env
 end
 
 (*****************************************************************************)
@@ -42,12 +36,13 @@ end
 module ServerMain (Program : SERVER_PROGRAM) : sig
   val run :
     shared_mem_config:SharedMem_js.config ->
+    log_file:string ->
     Options.t ->
     unit
   val check_once :
     shared_mem_config:SharedMem_js.config ->
     client_include_warnings:bool ->
-    ?focus_targets:Loc.filename list ->
+    ?focus_targets:FilenameSet.t ->
     Options.t ->
     Profiling_js.finished *
       Errors.ErrorSet.t * (* errors *)
@@ -127,6 +122,22 @@ end = struct
         flush stderr;
         env
 
+  let exit_due_to_dfind_dying ~genv e =
+    let root = Options.root genv.options in
+    let tmp_dir = Options.temp_dir genv.options in
+    let dfind_logs = Sys_utils.cat_no_fail (Server_files.dfind_log_file ~tmp_dir root) in
+    let logs_len = String.length dfind_logs in
+    (* Let's limit how much of the log we stick in the exit message *)
+    let max_len = 2000 in
+    let dfind_logs = if logs_len > max_len
+      then String.sub dfind_logs (logs_len - max_len) max_len
+      else dfind_logs in
+    let msg = spf
+      "dfind died (got exception: %s)\ndfind logs:\n%s"
+      (Printexc.to_string e)
+      dfind_logs in
+    FlowExitStatus.(exit Dfind_died ~msg)
+
   (* When a rebase occurs, dfind takes a while to give us the full list of
    * updates, and it often comes in batches. To get an accurate measurement
    * of rebase time, we use the heuristic that any changes that come in
@@ -134,14 +145,15 @@ end = struct
    * rebase, and we don't log the recheck_end event until the update list
    * is no longer getting populated. *)
   let rec recheck_loop ~dfind genv env =
-    let raw_updates = DfindLib.get_changes dfind in
+    let raw_updates =
+      try DfindLib.get_changes dfind
+      with
+      | Sys_error msg as e when msg = "Broken pipe" -> exit_due_to_dfind_dying ~genv e
+      | End_of_file as e -> exit_due_to_dfind_dying ~genv e
+    in
     if SSet.is_empty raw_updates then env else begin
       let updates = Program.process_updates genv env raw_updates in
-      Persistent_connection.send_start_recheck env.connections;
       let env = Program.recheck genv env updates in
-      Persistent_connection.send_end_recheck env.connections;
-      let errors, warnings, _ = Program.collate_errors_separate_warnings env in
-      Persistent_connection.update_clients env.connections ~errors ~warnings;
       recheck_loop ~dfind genv env
     end
 
@@ -159,19 +171,34 @@ end = struct
         die()
     end
 
+  let serve_client genv env = function
+    | New_client fd ->
+      env := handle_connection genv !env fd
+    | Existing_client client ->
+      env := Program.handle_persistent_client genv !env client
+
+  let serve_queue ~genv ~env ~ready_sockets =
+    while not (Queue.is_empty ready_sockets) do
+      let socket = Queue.pop ready_sockets in
+      serve_client genv env socket;
+    done
+
   let serve ~dfind ~genv ~env socket =
     let env = ref env in
     while true do
       assert_lock genv;
+      (* we want to defer processing certain commands until recheck is done *)
       ServerPeriodical.call_before_sleeping();
-      let ready_sockets = sleep_and_check socket !env.connections in
+      let ready_sockets = Queue.create () in
+      let add_ready_socket socket = Queue.push socket ready_sockets in
+      env := { !env with connections = Persistent_connection.filter_broken !env.connections };
+      sleep_and_check socket !env.connections
+      |> List.iter ~f:add_ready_socket;
+
       env := recheck_loop ~dfind genv !env;
-      List.iter ready_sockets (function
-        | New_client fd ->
-            env := handle_connection genv !env fd;
-        | Existing_client client ->
-            env := Program.handle_persistent_client genv !env client;
-      );
+
+      serve_queue ~genv ~env ~ready_sockets;
+
       EventLogger.flush ();
     done
 
@@ -254,7 +281,14 @@ end = struct
 
     serve ~dfind ~genv ~env socket
 
-  let run ~shared_mem_config options = run_internal ~shared_mem_config options
+  let run ~shared_mem_config ~log_file options =
+    let log_fd = Server_daemon.open_log_file log_file in
+    Hh_logger.set_log log_file (Unix.out_channel_of_descr log_fd);
+    Hh_logger.info "Logs will go to %s" log_file;
+    run_internal ~shared_mem_config options
+
+  let run_from_daemonize ?waiting_channel ~shared_mem_config options =
+    run_internal ?waiting_channel ~shared_mem_config options
 
   let check_once ~shared_mem_config ~client_include_warnings ?focus_targets options =
     PidLog.disable ();
@@ -268,7 +302,7 @@ end = struct
     profiling, errors, warnings, suppressed_errors
 
   let daemonize =
-    let entry = Server_daemon.register_entry_point run_internal in
+    let entry = Server_daemon.register_entry_point run_from_daemonize in
     fun ~wait ~log_file ~shared_mem_config ?on_spawn options ->
       Server_daemon.daemonize ~wait ~log_file ~shared_mem_config ?on_spawn ~options entry
 end

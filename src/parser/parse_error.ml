@@ -1,11 +1,8 @@
 (**
  * Copyright (c) 2013-present, Facebook, Inc.
- * All rights reserved.
  *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the "flow" directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
  *)
 
 type t =
@@ -16,6 +13,9 @@ type t =
   | UnexpectedString
   | UnexpectedIdentifier
   | UnexpectedReserved
+  | UnexpectedReservedType
+  | UnexpectedSuper
+  | UnexpectedSuperCall
   | UnexpectedEOS
   | UnexpectedVariance
   | UnexpectedTypeAlias
@@ -41,6 +41,7 @@ type t =
   | IllegalContinue
   | IllegalBreak
   | IllegalReturn
+  | IllegalUnicodeEscape
   | StrictModeWith
   | StrictCatchVariable
   | StrictVarName
@@ -63,6 +64,8 @@ type t =
   | NoUninitializedDestructuring
   | NewlineBeforeArrow
   | FunctionAsStatement of { in_strict_mode: bool }
+  | AsyncFunctionAsStatement
+  | GeneratorFunctionAsStatement
   | AdjacentJSXElements
   | ParameterAfterRestParameter
   | ElementAfterRestElement
@@ -98,6 +101,10 @@ type t =
   | YieldInFormalParameters
   | AwaitAsIdentifierReference
   | YieldAsIdentifierReference
+  | AmbiguousLetBracket
+  | LiteralShorthandProperty
+  | ComputedShorthandProperty
+  | MethodInDestructuring
 
 exception Error of (Loc.t * t) list
 
@@ -117,6 +124,9 @@ module PP =
       | UnexpectedString ->  "Unexpected string"
       | UnexpectedIdentifier ->  "Unexpected identifier"
       | UnexpectedReserved ->  "Unexpected reserved word"
+      | UnexpectedReservedType -> "Unexpected reserved type"
+      | UnexpectedSuper -> "Unexpected `super` outside of a class method"
+      | UnexpectedSuperCall -> "`super()` is only valid in a class constructor"
       | UnexpectedEOS ->  "Unexpected end of input"
       | UnexpectedVariance -> "Unexpected variance sigil"
       | UnexpectedTypeAlias -> "Type aliases are not allowed in untyped mode"
@@ -145,6 +155,7 @@ module PP =
       | IllegalContinue -> "Illegal continue statement"
       | IllegalBreak -> "Illegal break statement"
       | IllegalReturn -> "Illegal return statement"
+      | IllegalUnicodeEscape -> "Illegal Unicode escape"
       | StrictModeWith ->  "Strict mode code may not include a with statement"
       | StrictCatchVariable ->  "Catch variable may not be eval or arguments in strict mode"
       | StrictVarName ->  "Variable name may not be eval or arguments in strict mode"
@@ -173,6 +184,10 @@ module PP =
           else
             "In non-strict mode code, functions can only be declared at top level, "^
             "inside a block, or as the body of an if statement."
+      | AsyncFunctionAsStatement -> "Async functions can only be declared at top level or "^
+          "immediately within another function."
+      | GeneratorFunctionAsStatement -> "Generators can only be declared at top level or "^
+          "immediately within another function."
       | AdjacentJSXElements -> "Unexpected token <. Remember, adjacent JSX "^
           "elements must be wrapped in an enclosing parent tag"
       | ParameterAfterRestParameter ->
@@ -245,4 +260,9 @@ module PP =
       | YieldInFormalParameters -> "Yield expression not allowed in formal parameter"
       | AwaitAsIdentifierReference -> "`await` is an invalid identifier in async functions"
       | YieldAsIdentifierReference -> "`yield` is an invalid identifier in generators"
+      | AmbiguousLetBracket -> "`let [` is ambiguous in this position because it is "^
+          "either a `let` binding pattern, or a member expression."
+      | LiteralShorthandProperty -> "Literals cannot be used as shorthand properties."
+      | ComputedShorthandProperty -> "Computed properties must have a value."
+      | MethodInDestructuring -> "Object pattern can't contain methods"
   end

@@ -31,17 +31,12 @@
             "loc":{"source":null,"start":{"line":2,"column":2},"end":{"line":2,"column":12}},
             "range":[12,22],
             "key":{
-              "type":"PrivateName",
-              "loc":{"source":null,"start":{"line":2,"column":2},"end":{"line":2,"column":4}},
-              "range":[12,14],
-              "name":{
-                "type":"Identifier",
-                "loc":{"source":null,"start":{"line":2,"column":3},"end":{"line":2,"column":4}},
-                "range":[13,14],
-                "name":"p",
-                "typeAnnotation":null,
-                "optional":false
-              }
+              "type":"Identifier",
+              "loc":{"source":null,"start":{"line":2,"column":3},"end":{"line":2,"column":4}},
+              "range":[13,14],
+              "name":"p",
+              "typeAnnotation":null,
+              "optional":false
             },
             "value":null,
             "typeAnnotation":{
@@ -97,7 +92,7 @@
                         "type":"PrivateName",
                         "loc":{"source":null,"start":{"line":4,"column":10},"end":{"line":4,"column":12}},
                         "range":[41,43],
-                        "name":{
+                        "id":{
                           "type":"Identifier",
                           "loc":{"source":null,"start":{"line":4,"column":11},"end":{"line":4,"column":12}},
                           "range":[42,43],

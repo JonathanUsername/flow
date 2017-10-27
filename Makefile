@@ -17,7 +17,7 @@ else
   UNAME_S=$(shell uname -s)
 endif
 
--include facebook/Makefile
+-include facebook/Makefile.defs
 
 ################################################################################
 #                              OS-dependent stuff                              #
@@ -74,6 +74,7 @@ MODULES=\
   src/common/profiling\
   src/common/span\
   src/common/utils\
+  src/common/xx\
   src/flowlib\
   src/parser\
   src/parser_utils\
@@ -110,6 +111,7 @@ MODULES=\
 NATIVE_C_FILES=\
   $(INOTIFY_STUBS)\
   $(FSNOTIFY_STUBS)\
+  src/common/xx/xx_stubs.c\
   hack/heap/hh_shared.c\
   hack/utils/files.c\
   hack/utils/get_build_id.c\
@@ -138,17 +140,12 @@ OCP_BUILD_FILES=\
 COPIED_FLOWLIB=\
 	$(foreach lib,$(wildcard lib/*.js),_build/$(lib))
 
+COPIED_PRELUDE=\
+	$(foreach lib,$(wildcard prelude/*.js),_build/$(lib))
+
 JS_STUBS=\
 	$(wildcard js/*.js)
 
-
-# We need caml_hexstring_of_float for js_of_ocaml < 2.8
-JSOO_VERSION=$(shell which js_of_ocaml 2> /dev/null > /dev/null && js_of_ocaml --version)
-JSOO_MAJOR=$(shell echo $(JSOO_VERSION) | cut -d. -f 1)
-JSOO_MINOR=$(shell echo $(JSOO_VERSION) | cut -d. -f 2)
-ifeq (1, $(shell [ -z "$(JSOO_VERSION)" ] || [ $(JSOO_MAJOR) -gt 2 ] || [ $(JSOO_MAJOR) -eq 2 -a $(JSOO_MINOR) -gt 7 ]; echo $$?))
-	JS_STUBS += js/optional/caml_hexstring_of_float.js
-endif
 
 ################################################################################
 #                                    Rules                                     #
@@ -200,7 +197,7 @@ clean-ocp: clean
 	[ -d _obuild ] && ocp-build clean || true
 	rm -f $(OCP_BUILD_FILES)
 
-build-flow: _build/scripts/ppx_gen_flowlibs.native $(BUILT_OBJECT_FILES) $(COPIED_FLOWLIB)
+build-flow: _build/scripts/ppx_gen_flowlibs.native $(BUILT_OBJECT_FILES) $(COPIED_FLOWLIB) $(COPIED_PRELUDE)
 	ocamlbuild \
 		-use-ocamlfind -pkgs sedlex \
 		-no-links  $(INCLUDE_OPTS) $(LIB_OPTS) \
@@ -215,6 +212,7 @@ build-flow-with-ocp: $(OCP_BUILD_FILES) hack/utils/get_build_id.gen.c
 	[ -d _obuild ] || ocp-build init
 	 # Force us to pick up libdef changes - ocp-build is fast so it's fine
 	rm -rf _obuild/flow-flowlib
+	rm -rf _obuild/flow-prelude
 	ocp-build build flow
 	mkdir -p bin
 	cp _obuild/flow/flow.asm$(EXE) bin/flow$(EXE)
@@ -230,7 +228,7 @@ test-parser-ocp: $(OCP_BUILD_FILES) hack/utils/get_build_id.gen.c
 	ocp-build tests flow-parser-hardcoded-test
 	rm -f $(OCP_BUILD_FILES)
 
-build-flow-debug: _build/scripts/ppx_gen_flowlibs.native $(BUILT_OBJECT_FILES) $(COPIED_FLOWLIB)
+build-flow-debug: _build/scripts/ppx_gen_flowlibs.native $(BUILT_OBJECT_FILES) $(COPIED_FLOWLIB) $(COPIED_PRELUDE)
 	ocamlbuild \
 		-use-ocamlfind -pkgs sedlex \
 		-no-links $(INCLUDE_OPTS) $(LIB_OPTS) \
@@ -262,6 +260,11 @@ $(COPIED_FLOWLIB): _build/%.js: %.js
 	cp $< $@
 	rm -rf _build/src/flowlib
 
+$(COPIED_PRELUDE): _build/%.js: %.js
+	mkdir -p $(dir $@)
+	cp $< $@
+	rm -rf _build/src/prelude
+
 _build/scripts/ppx_gen_flowlibs.native: scripts/ppx_gen_flowlibs.ml
 	ocamlbuild \
 		-use-ocamlfind -pkgs sedlex,compiler-libs.common,unix \
@@ -280,7 +283,14 @@ copy-flow-files-ocp: build-flow-with-ocp
 do-test:
 	./runtests.sh bin/flow$(EXE)
 	bin/flow$(EXE) check
+	${MAKE} do-test-tool
 	./tool test
+
+do-test-tool:
+	FLOW_BIN=bin/flow ./node_modules/.bin/jest --config .jest-tool.config.js
+
+test-tool: build-flow copy-flow-files
+	${MAKE} do-test-tool
 
 test: build-flow copy-flow-files
 	${MAKE} do-test
@@ -306,6 +316,7 @@ js: _build/scripts/ppx_gen_flowlibs.native $(BUILT_OBJECT_FILES) $(COPIED_FLOWLI
 	js_of_ocaml \
 			--opt 3 \
 			--disable genprim \
+			--extern-fs \
 			-o bin/flow.js \
 			$(JS_STUBS) _build/src/flow_dot_js.byte \
 			2>_build/js_of_ocaml.err; \
@@ -346,3 +357,5 @@ flow.docdir/index.html: flow.odocl
 	ocamlbuild $(INCLUDE_OPTS) -use-ocamlfind flow.docdir/index.html
 
 doc: flow.docdir/index.html
+
+-include facebook/Makefile

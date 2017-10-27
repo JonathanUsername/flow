@@ -1,11 +1,8 @@
 (**
  * Copyright (c) 2013-present, Facebook, Inc.
- * All rights reserved.
  *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the "flow" directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
  *)
 
 module String_utils = struct
@@ -106,7 +103,7 @@ end = struct
   let find_case name map = try SMap.find name map with Not_found -> empty_case
 
   let parse_options content =
-    let open Result in
+    let open Core_result in
     let get_bool k v =
       try return (Hh_json.get_bool_exn v)
       with Assert_failure _ -> failf "invalid value for %S, expected bool" k
@@ -176,7 +173,7 @@ end = struct
             | "failure" -> { case with expected = Some (Failure content); }
             | "options" ->
               (* TODO: propagate errors better *)
-              let options = Result.ok_or_failwith (parse_options content) in
+              let options = Core_result.ok_or_failwith (parse_options content) in
               { case with options = Some options; }
             | _ -> { case with skipped = file::case.skipped }
             in
@@ -285,7 +282,7 @@ end = struct
   let rec test_tree
     (path: path_part list)
     (actual: Hh_json.json)
-    (expected: Ast.Expression.t)
+    (expected: Loc.t Ast.Expression.t)
     (errors: string list)
   : string list =
     let open Ast.Expression in
@@ -409,7 +406,7 @@ end = struct
 
   let has_prop
       (needle: string)
-      (haystack: Ast.Expression.Object.property list) =
+      (haystack: Loc.t Ast.Expression.Object.property list) =
     List.exists Ast.Expression.(function
       | Object.Property (_, prop) -> fst (prop_name_and_value prop) = needle
       | _ -> false
@@ -513,7 +510,13 @@ end = struct
       begin match case.expected with
       | Some (Module _) -> (* TODO *) Case_skipped None
       | Some (Tree tree) ->
-          let expected = fst (Parser_flow.json_file ~fail:true tree None) in
+          let expected, json_errors = Parser_flow.json_file ~fail:false tree None in
+          if json_errors <> [] then begin
+            let (loc, err) = List.hd json_errors in
+            let str = Printf.sprintf "Unable to parse .tree.json: %s: %s"
+              (Loc.to_string loc) (Parse_error.PP.error err) in
+            Case_error [str]
+          end else
           let expected = match diff with
           | Some str ->
             let diffs = fst (Parser_flow.json_file ~fail:true str None) in
@@ -603,7 +606,7 @@ end = struct
     let tests = tests_of_path path in
     let results = List.fold_left (fun results { test_name; cases; } ->
       if not quiet then print [C.Bold C.White, spf "=== %s ===\n" test_name];
-      let test_results = SMap.fold (fun key case results ->
+      let test_results, _ = SMap.fold (fun key case (results, shown_header) ->
         (* print [C.Normal C.Default, spf "[ ] %s\r" key]; *)
         match run_case case with
         | Case_ok ->
@@ -611,7 +614,7 @@ end = struct
             C.Normal C.Green, "[\xE2\x9C\x93] PASS";
             C.Normal C.Default, spf ": %s\n" key
           ];
-          { results with ok = results.ok + 1 }
+          { results with ok = results.ok + 1 }, shown_header
         | Case_skipped reason ->
           begin match reason with
           | Some ""
@@ -622,9 +625,9 @@ end = struct
                 C.Normal C.Default, spf ": %s - %s\n" key reason
               ]
           end;
-          { results with skipped = results.skipped + 1 }
+          { results with skipped = results.skipped + 1 }, shown_header
         | Case_error errs ->
-          if quiet then print [C.Bold C.White, spf "=== %s ===\n" test_name];
+          if quiet && not shown_header then print [C.Bold C.White, spf "=== %s ===\n" test_name];
           print [
             C.Normal C.Red, "[\xE2\x9C\x97] FAIL";
             C.Normal C.Default, spf ": %s\n" key
@@ -634,8 +637,8 @@ end = struct
           ) errs;
           flush stdout;
           if record then record_tree path test_name key case;
-          { results with failed = results.failed + 1 }
-      ) cases { ok = 0; skipped = 0; failed = 0; } in
+          { results with failed = results.failed + 1 }, true
+      ) cases ({ ok = 0; skipped = 0; failed = 0; }, false) in
       if not quiet then print_endline "";
       let results = add_results results test_results in
       if test_results.failed > 0 then

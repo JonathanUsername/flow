@@ -1,15 +1,12 @@
 (**
  * Copyright (c) 2013-present, Facebook, Inc.
- * All rights reserved.
  *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the "flow" directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
  *)
 
 
-type flow_mode = OptIn | OptInWeak | OptOut
+type flow_mode = OptIn | OptInStrict | OptInWeak | OptOut
 
 type t = {
   flow: flow_mode option;
@@ -36,6 +33,7 @@ let jsx info = info.jsx
 
 let is_flow info = match info.flow with
   | Some OptIn
+  | Some OptInStrict
   | Some OptInWeak -> true
   | Some OptOut
   | None -> false
@@ -45,6 +43,7 @@ let json_of_docblock info =
   let open Hh_json in
   let flow = match flow info with
   | Some OptIn -> JSON_String "OptIn"
+  | Some OptInStrict -> JSON_String "OptInStrict"
   | Some OptInWeak -> JSON_String "OptInWeak"
   | Some OptOut -> JSON_String "OptOut"
   | None -> JSON_Null in

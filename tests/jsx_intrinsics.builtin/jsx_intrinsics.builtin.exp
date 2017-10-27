@@ -1,32 +1,19 @@
-Library type error:
-<BUILTINS>/react.js:158
-                                                                  v-
-158: declare type React$Element<ElementType: React$ElementType> = {|
-159:   +type: ElementType,
-160:   +props: React$ElementProps<ElementType>,
-...:
-163: |};
-     -^ object type. This type is incompatible with
- 11: var b: Element<typeof CustomComponentNope> =
-            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ object type. See: main.js:11
-  Property `type` is incompatible:
-      6: class CustomComponent extends React.Component<{prop: string}, void> {}
-               ^^^^^^^^^^^^^^^ CustomComponent. This type is incompatible with. See: main.js:6
-      7: class CustomComponentNope extends React.Component<{prop: string}, void> {}
-               ^^^^^^^^^^^^^^^^^^^ CustomComponentNope. See: main.js:7
-
-Library type error:
-<BUILTINS>/react.js:160
-160:   +props: React$ElementProps<ElementType>,
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ property `prop1`. Property not found in
-  6: class CustomComponent extends React.Component<{prop: string}, void> {}
-                                                   ^^^^^^^^^^^^^^ object type. See: main.js:6
-
 Error: main.js:6
   6: class CustomComponent extends React.Component<{prop: string}, void> {}
                                                    ^^^^^^^^^^^^^^ property `prop`. Property not found in
  13: var c: Element<Class<React.Component<{prop1: string}, void>>> =
                                           ^^^^^^^^^^^^^^^ object type
+
+Error: main.js:12
+ 12:   <CustomComponent prop="asdf" />; // Error: Bad class type
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ object type. This type is incompatible with
+ 11: var b: Element<typeof CustomComponentNope> =
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ object type
+  Property `type` is incompatible:
+      6: class CustomComponent extends React.Component<{prop: string}, void> {}
+               ^^^^^^^^^^^^^^^ CustomComponent. This type is incompatible with
+      7: class CustomComponentNope extends React.Component<{prop: string}, void> {}
+               ^^^^^^^^^^^^^^^^^^^ CustomComponentNope
 
 Error: main.js:13
  13: var c: Element<Class<React.Component<{prop1: string}, void>>> =
@@ -34,11 +21,32 @@ Error: main.js:13
   6: class CustomComponent extends React.Component<{prop: string}, void> {}
                                                    ^^^^^^^^^^^^^^ object type
 
+Error: main.js:14
+ 14:   <CustomComponent prop="asdf" />; // Error: Props<{prop}> ~> Props<{prop1}>
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ object type. This type is incompatible with
+ 13: var c: Element<Class<React.Component<{prop1: string}, void>>> =
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ object type
+  Property `props` is incompatible:
+      6: class CustomComponent extends React.Component<{prop: string}, void> {}
+                                                       ^^^^^^^^^^^^^^ object type. This type is incompatible with
+    159:   +props: React$ElementProps<ElementType>,
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ object type. See lib: <BUILTINS>/react.js:159
+      Property `prop1` is incompatible:
+        159:   +props: React$ElementProps<ElementType>,
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ property `prop1`. Property not found in. See lib: <BUILTINS>/react.js:159
+          6: class CustomComponent extends React.Component<{prop: string}, void> {}
+                                                           ^^^^^^^^^^^^^^ object type
+
 Error: main.js:21
  21: var e: Element<'span'> = <div not_a_real_attr="asdf" />;
-                               ^^^ React element `div`. Expected string literal `span`, got `div` instead
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ object type. This type is incompatible with
  21: var e: Element<'span'> = <div not_a_real_attr="asdf" />;
-                    ^^^^^^ string literal `span`
+            ^^^^^^^^^^^^^^^ object type
+  Property `type` is incompatible:
+     21: var e: Element<'span'> = <div not_a_real_attr="asdf" />;
+                                   ^^^ React element `div`. Expected string literal `span`, got `div` instead
+     21: var e: Element<'span'> = <div not_a_real_attr="asdf" />;
+                        ^^^^^^ string literal `span`
 
 
 Found 5 errors

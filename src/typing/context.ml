@@ -1,29 +1,27 @@
 (**
  * Copyright (c) 2013-present, Facebook, Inc.
- * All rights reserved.
  *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the "flow" directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
  *)
+
+module LocMap = Utils_js.LocMap
 
 exception Props_not_found of Type.Properties.id
 exception Exports_not_found of Type.Exports.id
 exception Require_not_found of string
 exception Module_not_found of string
 exception Tvar_not_found of Constraint.ident
-exception Tvar_reason_not_found of Constraint.ident
 
 type env = Scope.t list
 
 type local_metadata = {
   checked: bool;
   munge_underscores: bool;
-  output_graphml: bool;
   verbose: Verbose.t option;
   weak: bool;
   jsx: Options.jsx_mode option;
+  strict: bool;
 }
 
 type global_metadata = {
@@ -78,20 +76,17 @@ module Global = struct
 end
 
 type local_t = {
-  file: Loc.filename;
+  file: File_key.t;
   module_ref: string;
   metadata: local_metadata;
 
   mutable module_kind: module_kind;
 
-  mutable import_stmts: Ast.Statement.ImportDeclaration.t list;
+  mutable import_stmts: Loc.t Ast.Statement.ImportDeclaration.t list;
   mutable imported_ts: Type.t SMap.t;
 
   (* map from tvar ids to nodes (type info structures) *)
   mutable graph: Constraint.node IMap.t;
-
-  (* map from tvar ids to reasons *)
-  mutable tvar_reasons: Reason.t IMap.t;
 
   (* set of "nominal" ids (created by Flow_js.mk_nominal_id) *)
   (** Nominal ids are used to identify classes and to check nominal subtyping
@@ -138,7 +133,7 @@ type local_t = {
   mutable declare_module_t: Type.t option;
 
   (* map from exists proposition locations to the types of values running through them *)
-  mutable exists_checks: ExistsCheck.t Utils_js.LocMap.t;
+  mutable exists_checks: ExistsCheck.t LocMap.t;
   (* map from exists proposition locations to the types of excuses for them *)
   (* If a variable appears in something like `x || ''`, the existence check
    * is excused and not considered sketchy. (The program behaves identically to how it would
@@ -146,10 +141,10 @@ type local_t = {
    * common pattern. Excusing it eliminates a lot of noise from the lint rule. *)
   (* The above example assumes that x is a string. If it were a different type
    * it wouldn't be excused. *)
-  mutable exists_excuses: ExistsCheck.t Utils_js.LocMap.t;
+  mutable exists_excuses: ExistsCheck.t LocMap.t;
 
   mutable dep_map: Dep_mapper.Dep.t Dep_mapper.DepMap.t;
-  mutable renamings : (Loc.t * int) Scope_builder.LocMap.t;
+  mutable use_def_map : Loc.t LocMap.t;
 }
 
 type cacheable_t = local_t
@@ -184,10 +179,10 @@ let metadata_of_options options =
   let local_metadata = {
     checked = Options.all options;
     munge_underscores = Options.should_munge_underscores options;
-    output_graphml = Options.output_graphml options;
     verbose = Options.verbose options;
     weak = Options.weak_by_default options;
     jsx = None;
+    strict = false;
   } in
   { global_metadata; local_metadata; }
 
@@ -209,7 +204,6 @@ let make metadata file module_ref = {
     imported_ts = SMap.empty;
 
     graph = IMap.empty;
-    tvar_reasons = IMap.empty;
     nominal_ids = ISet.empty;
     envs = IMap.empty;
     property_maps = Type.Properties.Map.empty;
@@ -232,11 +226,11 @@ let make metadata file module_ref = {
 
     declare_module_t = None;
 
-    exists_checks = Utils_js.LocMap.empty;
-    exists_excuses = Utils_js.LocMap.empty;
+    exists_checks = LocMap.empty;
+    exists_excuses = LocMap.empty;
 
     dep_map = Dep_mapper.DepMap.empty;
-    renamings = Scope_builder.LocMap.empty;
+    use_def_map = LocMap.empty;
   }
 }
 
@@ -272,9 +266,6 @@ let find_module cx m =
 let find_tvar cx id =
   try IMap.find_unsafe id cx.local.graph
   with Not_found -> raise (Tvar_not_found id)
-let find_tvar_reason cx id =
-  try IMap.find_unsafe id cx.local.tvar_reasons
-  with Not_found -> raise (Tvar_reason_not_found id)
 let mem_nominal_id cx id = ISet.mem id cx.local.nominal_ids
 let globals cx = cx.local.globals
 let graph cx = cx.local.graph
@@ -286,9 +277,9 @@ let is_weak cx = cx.local.metadata.weak
 let severity_cover cx = cx.local.severity_cover
 let max_trace_depth cx = Global.max_trace_depth cx.global
 let module_kind cx = cx.local.module_kind
+let require_map cx = cx.local.require_map
 let module_map cx = cx.local.module_map
 let module_ref cx = cx.local.module_ref
-let output_graphml cx = cx.local.metadata.output_graphml
 let property_maps cx = cx.local.property_maps
 let refs_table cx = cx.local.refs_table
 let export_maps cx = cx.local.export_maps
@@ -307,7 +298,7 @@ let jsx cx = cx.local.metadata.jsx
 let exists_checks cx = cx.local.exists_checks
 let exists_excuses cx = cx.local.exists_excuses
 let dep_map cx = cx.local.dep_map
-let renamings cx = cx.local.renamings
+let use_def_map cx = cx.local.use_def_map
 
 let pid_prefix (cx: t) =
   if max_workers cx > 0
@@ -346,8 +337,6 @@ let add_export_map cx id tmap =
   cx.local.export_maps <- Type.Exports.Map.add id tmap cx.local.export_maps
 let add_tvar cx id bounds =
   cx.local.graph <- IMap.add id bounds cx.local.graph
-let add_tvar_reason cx id reason =
-  cx.local.tvar_reasons <- IMap.add id reason cx.local.tvar_reasons
 let add_nominal_id cx id =
   cx.local.nominal_ids <- ISet.add id cx.local.nominal_ids
 let remove_all_errors cx =
@@ -394,8 +383,8 @@ let set_exists_excuses cx exists_excuses =
   cx.local.exists_excuses <- exists_excuses
 let set_dep_map cx dep_map =
   cx.local.dep_map <- dep_map
-let set_renamings cx renamings =
-  cx.local.renamings <- renamings
+let set_use_def_map cx use_def_map =
+  cx.local.use_def_map <- use_def_map
 let set_module_map cx module_map =
   cx.local.module_map <- module_map
 
@@ -404,10 +393,10 @@ let clear_intermediates cx =
   Type_table.reset cx.local.type_table;
   Hashtbl.reset cx.local.annot_table;
   cx.local.all_unresolved <- IMap.empty;
-  cx.local.exists_checks <- Utils_js.LocMap.empty;
-  cx.local.exists_excuses <- Utils_js.LocMap.empty;
+  cx.local.exists_checks <- LocMap.empty;
+  cx.local.exists_excuses <- LocMap.empty;
   cx.local.dep_map <- Dep_mapper.DepMap.empty;
-  cx.local.renamings <- Scope_builder.LocMap.empty;
+  cx.local.use_def_map <- LocMap.empty;
   cx.local.require_map <- SMap.empty
 
 
@@ -448,6 +437,11 @@ let make_export_map cx tmap =
   add_export_map cx id tmap;
   id
 
+let make_nominal cx =
+  let nominal = Reason.mk_id () in
+  add_nominal_id cx nominal;
+  nominal
+
 (* Copy context from cx_other to cx *)
 let merge_into cx cx_other =
   set_envs cx (IMap.union (envs cx_other) (envs cx));
@@ -456,16 +450,16 @@ let merge_into cx cx_other =
   set_export_maps cx (
     Type.Exports.Map.union (export_maps cx_other) (export_maps cx));
   set_evaluated cx (IMap.union (evaluated cx_other) (evaluated cx));
-  set_type_graph cx (Graph_explorer.union_finished (type_graph cx_other) (type_graph cx));
+  set_type_graph cx (Graph_explorer.union (type_graph cx_other) (type_graph cx));
   set_all_unresolved cx (IMap.union (all_unresolved cx_other) (all_unresolved cx));
   set_globals cx (SSet.union (globals cx_other) (globals cx));
   set_graph cx (IMap.union (graph cx_other) (graph cx));
   set_errors cx (Errors.ErrorSet.union (errors cx_other) (errors cx));
   set_error_suppressions cx (Error_suppressions.union (error_suppressions cx_other) (error_suppressions cx));
   set_severity_cover cx (ExactCover.union (severity_cover cx_other) (severity_cover cx));
-  set_exists_checks cx (Utils_js.LocMap.union (exists_checks cx_other) (exists_checks cx));
-  set_exists_excuses cx (Utils_js.LocMap.union (exists_excuses cx_other) (exists_excuses cx))
-  (* TODO: merge renamings and dep_map as well. *)
+  set_exists_checks cx (LocMap.union (exists_checks cx_other) (exists_checks cx));
+  set_exists_excuses cx (LocMap.union (exists_excuses cx_other) (exists_excuses cx))
+  (* TODO: merge use_def_map and dep_map as well. *)
 
 let to_cache cx = cx.local
 let from_cache ~options local =

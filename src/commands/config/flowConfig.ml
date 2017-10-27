@@ -1,11 +1,8 @@
 (**
  * Copyright (c) 2013-present, Facebook, Inc.
- * All rights reserved.
  *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the "flow" directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
  *)
 
 open Utils_js
@@ -19,6 +16,8 @@ let default_shm_dirs =
 
 (* Half a gig *)
 let default_shm_min_avail = 1024 * 1024 * 512
+
+let version_regex = Str.regexp_string "<VERSION>"
 
 let map_add map (key, value) = SMap.add key value map
 
@@ -309,6 +308,8 @@ type config = {
   libs: string list;
   (* lint severities *)
   lint_severities: Severity.severity LintSettings.t;
+  (* strict mode *)
+  strict_mode: StrictModeSettings.t;
   (* config options *)
   options: Opts.t;
 }
@@ -365,6 +366,14 @@ end = struct
           (string_of_severity state)))
       lint_severities
 
+  let strict o config =
+    let open Lints in
+    let strict_mode = config.strict_mode in
+    StrictModeSettings.iter (fun kind ->
+      (fprintf o "%s\n"
+         (string_of_kind kind)))
+      strict_mode
+
   let config o config =
     section_header o "ignore";
     ignores o config.ignores;
@@ -379,7 +388,10 @@ end = struct
     lints o config;
     fprintf o "\n";
     section_header o "options";
-    options o config
+    options o config;
+    fprintf o "\n";
+    section_header o "strict";
+    strict o config
 end
 
 let empty_config = {
@@ -387,6 +399,7 @@ let empty_config = {
   includes = [];
   libs = [];
   lint_severities = LintSettings.default_severities;
+  strict_mode = StrictModeSettings.empty;
   options = Opts.default_options
 }
 
@@ -417,6 +430,8 @@ let trim_labeled_lines lines =
   |> List.map (fun (label, line) -> (label, String.trim line))
   |> List.filter (fun (_, s) -> s <> "")
 
+let less_or_equal_curr_version = Version_regex.less_than_or_equal_to_version (Flow_version.version)
+
 (* parse [include] lines *)
 let parse_includes config lines =
   let includes = trim_lines lines in
@@ -432,6 +447,7 @@ let parse_ignores config lines =
 
 let parse_options config lines =
   let open Opts in
+  let (>>=) = Core_result.(>>=) in
   let options = parse config.options lines
     |> define_opt "emoji" {
       initializer_ = USE_DEFAULT;
@@ -696,10 +712,15 @@ let parse_options config lines =
         {opts with suppress_comments = [];}
       );
       flags = [ALLOW_DUPLICATE];
-      optparser = optparse_regexp;
-      setter = (fun opts v -> Ok {
-        opts with suppress_comments = v::(opts.suppress_comments);
-      });
+      optparser = optparse_string;
+      setter = (fun opts v ->
+        Str.split_delim version_regex v
+        |> String.concat (">=" ^ less_or_equal_curr_version)
+        |> String.escaped
+        |> Core_result.return
+        >>= optparse_regexp
+        >>= fun v -> Ok { opts with suppress_comments = v::(opts.suppress_comments) }
+      );
     }
 
     |> define_opt "suppress_type" {
@@ -849,6 +870,11 @@ let parse_lints config lines =
   | Ok lint_severities -> {config with lint_severities}
   | Error (ln, msg) -> error ln msg
 
+let parse_strict config lines =
+  match lines |> trim_labeled_lines |> StrictModeSettings.of_lines with
+  | Ok strict_mode -> {config with strict_mode}
+  | Error (ln, msg) -> error ln msg
+
 let parse_section config ((section_ln, section), lines) =
   match section, lines with
   | "", [] when section_ln = 0 -> config
@@ -858,6 +884,7 @@ let parse_section config ((section_ln, section), lines) =
   | "ignore", _ -> parse_ignores config lines
   | "libs", _ -> parse_libs config lines
   | "lints", _ -> parse_lints config lines
+  | "strict", _ -> parse_strict config lines
   | "options", _ -> parse_options config lines
   | "version", _ -> parse_version config lines
   | _ -> error section_ln (spf "Unsupported config section: \"%s\"" section)
@@ -967,5 +994,6 @@ let traces c = c.options.Opts.traces
 let required_version c = c.options.Opts.version
 let weak c = c.options.Opts.weak
 
-(* global defaults for lint severities *)
+(* global defaults for lint severities and strict mode *)
 let lint_severities c = c.lint_severities
+let strict_mode c = c.strict_mode

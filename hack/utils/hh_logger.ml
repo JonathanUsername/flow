@@ -15,20 +15,32 @@ let timestamp_string () =
   Printf.sprintf "[%d-%02d-%02d %02d:%02d:%02d]"
     year (tm.tm_mon + 1) tm.tm_mday tm.tm_hour tm.tm_min tm.tm_sec
 
-let log_raw s =
-  Printf.eprintf "%s %s%!" (timestamp_string ()) s
+(* We might want to log to both stderr and a file. Shelling out to tee isn't cross-platform.
+ * We could dup2 stderr to a pipe and have a child process write to both original stderr and the
+ * file, but that's kind of overkill. This is good enough *)
+let dupe_log: (string * out_channel) option ref = ref None
+let set_log filename fd =
+  dupe_log := Some (filename, fd)
+let get_log_name () = Option.map !dupe_log ~f:fst
 
-(* wraps log_raw in order to take a format string & add a newline *)
-let log fmt = Printf.ksprintf log_raw (fmt^^"\n")
+let print_raw s =
+  let time = timestamp_string () in
+  begin match !dupe_log with
+  | None -> ()
+  | Some (_, dupe_log_oc) -> Printf.fprintf dupe_log_oc "%s %s%!" time s end;
+  Printf.eprintf "%s %s%!" time s
 
-let log_duration name t =
-  log_raw (name ^ ": ");
+(* wraps print_raw in order to take a format string & add a newline *)
+let print fmt = Printf.ksprintf print_raw (fmt^^"\n")
+
+let print_duration name t =
+  print_raw (name ^ ": ");
   let t2 = Unix.gettimeofday() in
   Printf.eprintf "%f\n%!" (t2 -. t);
   t2
 
 let exc ?(prefix="") e =
-  log_raw (prefix ^ Printexc.to_string e ^ "\n");
+  print_raw (prefix ^ Printexc.to_string e ^ "\n");
   Printexc.print_backtrace stderr;
   ()
 
@@ -43,6 +55,7 @@ module Level : sig
   val min_level : unit -> t
   val set_min_level : t -> unit
   val log : t -> ('a, unit, string, string, string, unit) format6 -> 'a
+  val log_duration : t -> string -> float -> float
 end = struct
   type t =
     | Off
@@ -66,9 +79,19 @@ end = struct
 
   let log level fmt =
     if int_of_level level >= int_of_level !min_level_ref
-    then log fmt
+    then print fmt
     else Printf.ifprintf () fmt
+
+  let log_duration level fmt t =
+    if int_of_level level >= int_of_level !min_level_ref
+    then print_duration fmt t
+    else t
+
 end
+
+(* Default log instructions to INFO level *)
+let log ?(lvl=Level.Info) fmt = Level.log lvl fmt
+let log_duration fmt t = Level.log_duration Level.Info fmt t
 
 let fatal fmt = Level.log Level.Fatal fmt
 let error fmt = Level.log Level.Error fmt

@@ -1,11 +1,8 @@
 (**
  * Copyright (c) 2013-present, Facebook, Inc.
- * All rights reserved.
  *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the "flow" directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
  *)
 
 (*
@@ -30,7 +27,7 @@ type 'a t
 (* Cover over 0 files. *)
 val empty: 'a t
 (* Given a filename and a value, generate a cover associating that value with that entire file. *)
-val file_cover: Loc.filename -> 'a -> 'a t
+val file_cover: File_key.t -> 'a -> 'a t
 (* Gets the value associated with a certain location in the code. To resolve
  * ambiguity, this looks at the location of the first character in the provided
  * location. Errors if queried for a file not contained in this cover. *)
@@ -58,7 +55,7 @@ val union_all : 'a t Utils_js.FilenameMap.t -> 'a t
 type 'a builder
 (* Create a new builder for the provided file. The resultant builder is an exact
  * cover with a single range associating the whole file with the provided value. *)
-val new_builder: Loc.filename -> 'a -> 'a builder
+val new_builder: File_key.t -> 'a -> 'a builder
 (* Change the value in the provided range by applying the provided mapping
  * function. Ranges in the builder that are completely contained in the provided
  * range have their values replaced using the mapping function. Ranges in the
@@ -107,7 +104,7 @@ type lint_severity_cover = severity LintSettings.t t
 
 (* Given a filename, generate a cover that applies the default lint severities
  * across the entire file. *)
-val default_file_cover: Loc.filename -> lint_severity_cover
+val default_file_cover: File_key.t -> lint_severity_cover
 (* Gets the severity of the provided lint kind at the provided location. Errors
  * if queried for a file not contained in this cover. *)
 val get_severity: lint_kind -> Loc.t -> lint_severity_cover -> severity

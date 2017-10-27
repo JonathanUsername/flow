@@ -1,11 +1,8 @@
 (**
  * Copyright (c) 2013-present, Facebook, Inc.
- * All rights reserved.
  *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the "flow" directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
  *)
 
 (* Disjoint sets of checked files (files which we not only parse but also merge)
@@ -38,6 +35,7 @@ let combine a b = match (a, b) with
 | _ -> Dependency
 
 let empty = FilenameMap.empty
+let is_empty = FilenameMap.is_empty
 let of_focused_list = List.fold_left (fun acc f -> FilenameMap.add f Focused acc) empty
 
 let mem = FilenameMap.mem
@@ -66,6 +64,8 @@ let union = FilenameMap.union ~combine:(fun _ a b -> Some (combine a b))
 
 let diff a b = FilenameMap.filter (fun k _ -> not (FilenameMap.mem k b)) a
 
+let filter ~f checked = FilenameMap.filter (fun k _ -> f k) checked
+
 let filter_into_set ~f checked = FilenameMap.fold
   (fun key kind acc -> if f kind then FilenameSet.add key acc else acc)
   checked
@@ -84,7 +84,7 @@ let dependencies = filter_into_set ~f:(fun kind -> kind = Dependency)
 let debug_to_string =
   let string_of_set set =
     Utils_js.FilenameSet.elements set
-    |> List.map (fun f -> spf "\"%s\"" (Loc.string_of_filename f))
+    |> List.map (fun f -> spf "\"%s\"" (File_key.to_string f))
     |> String.concat "\n"
   in
   fun checked ->
@@ -92,3 +92,12 @@ let debug_to_string =
       (checked |> focused |> string_of_set)
       (checked |> dependents |> string_of_set)
       (checked |> dependencies |> string_of_set)
+
+let debug_counts_to_string checked =
+  let focused, dependents, dependencies = FilenameMap.fold (
+    fun _ kind (focused, dependents, dependencies) -> match kind with
+    | Focused -> (focused + 1, dependents, dependencies)
+    | Dependent -> (focused, dependents + 1, dependencies)
+    | Dependency -> (focused, dependents, dependencies + 1)
+  ) checked (0, 0, 0) in
+  Printf.sprintf "Focused: %d, Dependents: %d, Dependencies: %d" focused dependents dependencies

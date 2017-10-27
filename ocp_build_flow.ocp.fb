@@ -1,11 +1,8 @@
 (**
  * Copyright (c) 2013-present, Facebook, Inc.
- * All rights reserved.
  *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the "flow" directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
  *)
 
 begin library "ROOTPROJECT"
@@ -154,6 +151,21 @@ begin library "flow-common-utils"
   ]
 end
 
+xx_libc_flags = [
+  "-I"; "src/third-party/lz4";
+]
+begin library "flow-common-xx"
+  files = begin fb-glob "src/common/profiling"
+    excludes = [ "xx_stubs.c" ]
+  end
+  files += [
+    "src/common/xx/xx_stubs.c" (ccopt = xx_libc_flags)
+  ]
+  requires = [
+    "lz4"
+  ]
+end
+
 begin library "flow-scripts-utils"
   dirname = "scripts"
   files = [
@@ -191,7 +203,7 @@ begin library "flow-flowlib"
     "flow-ppx-gen-flowlib:asm"
   ]
   comp = [
-    "-ppx" "%{flow-ppx-gen-flowlib_FULL_DST_DIR}%/flow-ppx-gen-flowlib.asm lib/"
+    "-ppx" "%{flow-ppx-gen-flowlib_FULL_DST_DIR}%/flow-ppx-gen-flowlib.asm lib/ prelude/"
   ]
 end
 
@@ -437,6 +449,7 @@ begin library "flow-services-inference"
     "flow-common-errors"
     "flow-common-lints"
     "flow-common-utils"
+    "flow-common-xx"
     "flow-stubs"
     "flow-parser"
     "flow-parser-utils"
@@ -502,6 +515,7 @@ begin library "flow-typing"
     "flow-common-errors"
     "flow-common-lints"
     "flow-common-utils"
+    "flow-common-xx"
     "flow-parser"
     "flow-parser-utils"
     "tp-core"

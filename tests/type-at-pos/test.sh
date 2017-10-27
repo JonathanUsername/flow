@@ -5,8 +5,6 @@ FLOW=$1
 assert_ok \
   "$FLOW" type-at-pos test.js 5 1 --strip-root --pretty
 assert_ok \
-  "$FLOW" type-at-pos test.js 5 1 --strip-root --raw --pretty
-assert_ok \
   "$FLOW" type-at-pos test.js 8 7 --strip-root --pretty
 assert_ok \
   "$FLOW" type-at-pos test.js 10 7 --strip-root --pretty
@@ -83,3 +81,12 @@ assert_ok \
 printf "object_special_cases.js:6:32 = "
 assert_ok \
   "$FLOW" type-at-pos object_special_cases.js 6 32 --strip-root --pretty
+printf "mixed.js:18:17 = "
+assert_ok \
+  "$FLOW" type-at-pos mixed.js 18 17 --strip-root --pretty
+printf "array.js:6:15 = "
+assert_ok \
+  "$FLOW" type-at-pos array.js 6 15 --strip-root --pretty
+printf "array.js:10:15 = "
+assert_ok \
+  "$FLOW" type-at-pos array.js 10 15 --strip-root --pretty

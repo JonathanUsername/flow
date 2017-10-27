@@ -18,54 +18,10 @@ annexB/language/expressions/object/__proto__-duplicate.js (strict mode)
   Missing parse error
 annexB/language/expressions/object/__proto__-duplicate.js (default)
   Missing parse error
-annexB/language/function-code/block-decl-func-skip-early-err-try.js (default)
-  Unexpected token { at (41, 11) to (41, 12)
-annexB/language/function-code/if-decl-else-decl-a-func-skip-early-err-try.js (default)
-  Unexpected token { at (50, 11) to (50, 12)
-annexB/language/function-code/if-decl-else-decl-b-func-skip-early-err-try.js (default)
-  Unexpected token { at (50, 11) to (50, 12)
-annexB/language/function-code/if-decl-else-stmt-func-skip-early-err-try.js (default)
-  Unexpected token { at (50, 11) to (50, 12)
-annexB/language/function-code/if-decl-no-else-func-skip-early-err-try.js (default)
-  Unexpected token { at (50, 11) to (50, 12)
-annexB/language/function-code/if-stmt-else-decl-func-skip-early-err-try.js (default)
-  Unexpected token { at (50, 11) to (50, 12)
-annexB/language/function-code/switch-case-func-skip-early-err-try.js (default)
-  Unexpected token { at (41, 11) to (41, 12)
-annexB/language/function-code/switch-dflt-func-skip-early-err-try.js (default)
-  Unexpected token { at (41, 11) to (41, 12)
-annexB/language/global-code/block-decl-global-skip-early-err-try.js (default)
-  Unexpected token { at (38, 9) to (38, 10)
-annexB/language/global-code/if-decl-else-decl-a-global-skip-early-err-try.js (default)
-  Unexpected token { at (47, 9) to (47, 10)
-annexB/language/global-code/if-decl-else-decl-b-global-skip-early-err-try.js (default)
-  Unexpected token { at (47, 9) to (47, 10)
-annexB/language/global-code/if-decl-else-stmt-global-skip-early-err-try.js (default)
-  Unexpected token { at (47, 9) to (47, 10)
-annexB/language/global-code/if-decl-no-else-global-skip-early-err-try.js (default)
-  Unexpected token { at (47, 9) to (47, 10)
-annexB/language/global-code/if-stmt-else-decl-global-skip-early-err-try.js (default)
-  Unexpected token { at (47, 9) to (47, 10)
-annexB/language/global-code/switch-case-global-skip-early-err-try.js (default)
-  Unexpected token { at (38, 9) to (38, 10)
-annexB/language/global-code/switch-dflt-global-skip-early-err-try.js (default)
-  Unexpected token { at (38, 9) to (38, 10)
 annexB/language/literals/numeric/non-octal-decimal-integer.js (default)
   Unexpected token ILLEGAL at (34, 17) to (34, 20)
 annexB/language/statements/for-in/nonstrict-initializer.js (default)
   Invalid left-hand side in for-in at (11, 7) to (11, 24)
-built-ins/Function/prototype/toString/unicode.js (strict mode)
-  Unexpected token ILLEGAL at (12, 9) to (12, 10)
-built-ins/Function/prototype/toString/unicode.js (default)
-  Unexpected token ILLEGAL at (12, 9) to (12, 10)
-built-ins/RegExp/named-groups/non-unicode-property-names.js (strict mode)
-  Unexpected token ILLEGAL at (13, 51) to (13, 52)
-built-ins/RegExp/named-groups/non-unicode-property-names.js (default)
-  Unexpected token ILLEGAL at (13, 51) to (13, 52)
-built-ins/RegExp/named-groups/unicode-property-names.js (strict mode)
-  Unexpected token ILLEGAL at (12, 52) to (12, 53)
-built-ins/RegExp/named-groups/unicode-property-names.js (default)
-  Unexpected token ILLEGAL at (12, 52) to (12, 53)
 language/block-scope/syntax/redeclaration/async-function-declaration-attempt-to-redeclare-with-async-function-declaration.js (strict mode)
   Missing parse error
 language/block-scope/syntax/redeclaration/async-function-declaration-attempt-to-redeclare-with-async-function-declaration.js (default)
@@ -322,92 +278,6 @@ language/expressions/arrow-function/syntax/early-errors/use-strict-with-non-simp
   Missing parse error
 language/expressions/arrow-function/syntax/early-errors/use-strict-with-non-simple-param.js (default)
   Missing parse error
-language/expressions/assignment/dstr-array-elem-nested-obj-yield-expr.js (strict mode)
-  Unexpected token = at (26, 14) to (26, 15)
-language/expressions/assignment/dstr-array-elem-nested-obj-yield-expr.js (default)
-  Unexpected token = at (26, 14) to (26, 15)
-language/expressions/assignment/dstr-array-elem-nested-obj-yield-ident-valid.js (default)
-  Unexpected token = at (25, 14) to (25, 15)
-language/expressions/assignment/dstr-array-rest-before-elision.js (strict mode)
-  Missing parse error
-language/expressions/assignment/dstr-array-rest-before-elision.js (default)
-  Missing parse error
-language/expressions/assignment/dstr-array-rest-elision-invalid.js (strict mode)
-  Missing parse error
-language/expressions/assignment/dstr-array-rest-elision-invalid.js (default)
-  Missing parse error
-language/expressions/assignment/dstr-array-rest-nested-obj-yield-expr.js (strict mode)
-  Unexpected token = at (26, 17) to (26, 18)
-language/expressions/assignment/dstr-array-rest-nested-obj-yield-expr.js (default)
-  Unexpected token = at (26, 17) to (26, 18)
-language/expressions/assignment/dstr-array-rest-nested-obj-yield-ident-valid.js (default)
-  Unexpected token = at (25, 17) to (25, 18)
-language/expressions/assignment/dstr-obj-id-init-assignment-missing.js (strict mode)
-  Unexpected token = at (24, 13) to (24, 14)
-language/expressions/assignment/dstr-obj-id-init-assignment-missing.js (default)
-  Unexpected token = at (24, 13) to (24, 14)
-language/expressions/assignment/dstr-obj-id-init-assignment-null.js (strict mode)
-  Unexpected token = at (24, 13) to (24, 14)
-language/expressions/assignment/dstr-obj-id-init-assignment-null.js (default)
-  Unexpected token = at (24, 13) to (24, 14)
-language/expressions/assignment/dstr-obj-id-init-assignment-truthy.js (strict mode)
-  Unexpected token = at (24, 13) to (24, 14)
-language/expressions/assignment/dstr-obj-id-init-assignment-truthy.js (default)
-  Unexpected token = at (24, 13) to (24, 14)
-language/expressions/assignment/dstr-obj-id-init-assignment-undef.js (strict mode)
-  Unexpected token = at (24, 13) to (24, 14)
-language/expressions/assignment/dstr-obj-id-init-assignment-undef.js (default)
-  Unexpected token = at (24, 13) to (24, 14)
-language/expressions/assignment/dstr-obj-id-init-evaluation.js (strict mode)
-  Unexpected token = at (26, 13) to (26, 14)
-language/expressions/assignment/dstr-obj-id-init-evaluation.js (default)
-  Unexpected token = at (26, 13) to (26, 14)
-language/expressions/assignment/dstr-obj-id-init-fn-name-arrow.js (strict mode)
-  Unexpected token = at (34, 17) to (34, 18)
-language/expressions/assignment/dstr-obj-id-init-fn-name-arrow.js (default)
-  Unexpected token = at (34, 17) to (34, 18)
-language/expressions/assignment/dstr-obj-id-init-fn-name-class.js (strict mode)
-  Unexpected token = at (34, 16) to (34, 17)
-language/expressions/assignment/dstr-obj-id-init-fn-name-class.js (default)
-  Unexpected token = at (34, 16) to (34, 17)
-language/expressions/assignment/dstr-obj-id-init-fn-name-cover.js (strict mode)
-  Unexpected token = at (34, 18) to (34, 19)
-language/expressions/assignment/dstr-obj-id-init-fn-name-cover.js (default)
-  Unexpected token = at (34, 18) to (34, 19)
-language/expressions/assignment/dstr-obj-id-init-fn-name-fn.js (strict mode)
-  Unexpected token = at (34, 15) to (34, 16)
-language/expressions/assignment/dstr-obj-id-init-fn-name-fn.js (default)
-  Unexpected token = at (34, 15) to (34, 16)
-language/expressions/assignment/dstr-obj-id-init-fn-name-gen.js (strict mode)
-  Unexpected token = at (34, 16) to (34, 17)
-language/expressions/assignment/dstr-obj-id-init-fn-name-gen.js (default)
-  Unexpected token = at (34, 16) to (34, 17)
-language/expressions/assignment/dstr-obj-id-init-in.js (strict mode)
-  Unexpected token = at (24, 16) to (24, 17)
-language/expressions/assignment/dstr-obj-id-init-in.js (default)
-  Unexpected token = at (24, 16) to (24, 17)
-language/expressions/assignment/dstr-obj-id-init-let.js (strict mode)
-  Unexpected token = at (22, 9) to (22, 10)
-language/expressions/assignment/dstr-obj-id-init-let.js (default)
-  Unexpected token = at (22, 9) to (22, 10)
-language/expressions/assignment/dstr-obj-id-init-order.js (strict mode)
-  Unexpected token = at (25, 13) to (25, 14)
-language/expressions/assignment/dstr-obj-id-init-order.js (default)
-  Unexpected token = at (25, 13) to (25, 14)
-language/expressions/assignment/dstr-obj-id-init-simple-no-strict.js (default)
-  Unexpected token = at (24, 16) to (24, 17)
-language/expressions/assignment/dstr-obj-id-init-yield-expr.js (strict mode)
-  Unexpected token = at (26, 13) to (26, 14)
-language/expressions/assignment/dstr-obj-id-init-yield-expr.js (default)
-  Unexpected token = at (26, 13) to (26, 14)
-language/expressions/assignment/dstr-obj-id-init-yield-ident-valid.js (default)
-  Unexpected token = at (25, 13) to (25, 14)
-language/expressions/assignment/dstr-obj-prop-nested-obj-yield-expr.js (strict mode)
-  Unexpected token = at (26, 18) to (26, 19)
-language/expressions/assignment/dstr-obj-prop-nested-obj-yield-expr.js (default)
-  Unexpected token = at (26, 18) to (26, 19)
-language/expressions/assignment/dstr-obj-prop-nested-obj-yield-ident-valid.js (default)
-  Unexpected token = at (25, 18) to (25, 19)
 language/expressions/async-arrow-function/early-errors-arrow-NSPL-with-USD.js (strict mode)
   Missing parse error
 language/expressions/async-arrow-function/early-errors-arrow-NSPL-with-USD.js (default)
@@ -420,25 +290,9 @@ language/expressions/async-arrow-function/early-errors-arrow-await-in-formals.js
   Missing parse error
 language/expressions/async-arrow-function/early-errors-arrow-await-in-formals.js (default)
   Missing parse error
-language/expressions/async-arrow-function/early-errors-arrow-body-contains-super-call.js (strict mode)
-  Missing parse error
-language/expressions/async-arrow-function/early-errors-arrow-body-contains-super-call.js (default)
-  Missing parse error
-language/expressions/async-arrow-function/early-errors-arrow-body-contains-super-property.js (strict mode)
-  Missing parse error
-language/expressions/async-arrow-function/early-errors-arrow-body-contains-super-property.js (default)
-  Missing parse error
 language/expressions/async-arrow-function/early-errors-arrow-formals-body-duplicate.js (strict mode)
   Missing parse error
 language/expressions/async-arrow-function/early-errors-arrow-formals-body-duplicate.js (default)
-  Missing parse error
-language/expressions/async-arrow-function/early-errors-arrow-formals-contains-super-call.js (strict mode)
-  Missing parse error
-language/expressions/async-arrow-function/early-errors-arrow-formals-contains-super-call.js (default)
-  Missing parse error
-language/expressions/async-arrow-function/early-errors-arrow-formals-contains-super-property.js (strict mode)
-  Missing parse error
-language/expressions/async-arrow-function/early-errors-arrow-formals-contains-super-property.js (default)
   Missing parse error
 language/expressions/async-arrow-function/early-errors-arrow-formals-lineterminator.js (strict mode)
   Missing parse error
@@ -448,37 +302,13 @@ language/expressions/async-function/early-errors-expression-NSPL-with-USD.js (st
   Missing parse error
 language/expressions/async-function/early-errors-expression-NSPL-with-USD.js (default)
   Missing parse error
-language/expressions/async-function/early-errors-expression-body-contains-super-call.js (strict mode)
-  Missing parse error
-language/expressions/async-function/early-errors-expression-body-contains-super-call.js (default)
-  Missing parse error
-language/expressions/async-function/early-errors-expression-body-contains-super-property.js (strict mode)
-  Missing parse error
-language/expressions/async-function/early-errors-expression-body-contains-super-property.js (default)
-  Missing parse error
 language/expressions/async-function/early-errors-expression-formals-body-duplicate.js (strict mode)
   Missing parse error
 language/expressions/async-function/early-errors-expression-formals-body-duplicate.js (default)
   Missing parse error
-language/expressions/async-function/early-errors-expression-formals-contains-super-call.js (strict mode)
-  Missing parse error
-language/expressions/async-function/early-errors-expression-formals-contains-super-call.js (default)
-  Missing parse error
-language/expressions/async-function/early-errors-expression-formals-contains-super-property.js (strict mode)
-  Missing parse error
-language/expressions/async-function/early-errors-expression-formals-contains-super-property.js (default)
-  Missing parse error
 language/expressions/async-generator/early-errors-expression-NSPL-with-USD.js (strict mode)
   Missing parse error
 language/expressions/async-generator/early-errors-expression-NSPL-with-USD.js (default)
-  Missing parse error
-language/expressions/async-generator/early-errors-expression-body-contains-super-call.js (strict mode)
-  Missing parse error
-language/expressions/async-generator/early-errors-expression-body-contains-super-call.js (default)
-  Missing parse error
-language/expressions/async-generator/early-errors-expression-body-contains-super-property.js (strict mode)
-  Missing parse error
-language/expressions/async-generator/early-errors-expression-body-contains-super-property.js (default)
   Missing parse error
 language/expressions/async-generator/early-errors-expression-formals-body-duplicate-const.js (strict mode)
   Missing parse error
@@ -492,34 +322,6 @@ language/expressions/async-generator/early-errors-expression-formals-contains-aw
   Missing parse error
 language/expressions/async-generator/early-errors-expression-formals-contains-await-expr.js (default)
   Missing parse error
-language/expressions/async-generator/early-errors-expression-formals-contains-super-call.js (strict mode)
-  Missing parse error
-language/expressions/async-generator/early-errors-expression-formals-contains-super-call.js (default)
-  Missing parse error
-language/expressions/async-generator/early-errors-expression-formals-contains-super-property.js (strict mode)
-  Missing parse error
-language/expressions/async-generator/early-errors-expression-formals-contains-super-property.js (default)
-  Missing parse error
-language/expressions/async-generator/early-errors-expression-yield-star-after-newline.js (strict mode)
-  Missing parse error
-language/expressions/async-generator/early-errors-expression-yield-star-after-newline.js (default)
-  Missing parse error
-language/expressions/function/early-body-super-call.js (strict mode)
-  Missing parse error
-language/expressions/function/early-body-super-call.js (default)
-  Missing parse error
-language/expressions/function/early-body-super-prop.js (strict mode)
-  Missing parse error
-language/expressions/function/early-body-super-prop.js (default)
-  Missing parse error
-language/expressions/function/early-params-super-call.js (strict mode)
-  Missing parse error
-language/expressions/function/early-params-super-call.js (default)
-  Missing parse error
-language/expressions/function/early-params-super-prop.js (strict mode)
-  Missing parse error
-language/expressions/function/early-params-super-prop.js (default)
-  Missing parse error
 language/expressions/function/use-strict-with-non-simple-param.js (strict mode)
   Missing parse error
 language/expressions/function/use-strict-with-non-simple-param.js (default)
@@ -527,10 +329,6 @@ language/expressions/function/use-strict-with-non-simple-param.js (default)
 language/expressions/generators/use-strict-with-non-simple-param.js (strict mode)
   Missing parse error
 language/expressions/generators/use-strict-with-non-simple-param.js (default)
-  Missing parse error
-language/expressions/generators/yield-star-after-newline.js (strict mode)
-  Missing parse error
-language/expressions/generators/yield-star-after-newline.js (default)
   Missing parse error
 language/expressions/object/method-definition/early-errors-object-method-NSPL-with-USD.js (strict mode)
   Missing parse error
@@ -548,15 +346,7 @@ language/expressions/object/method-definition/early-errors-object-method-await-i
   Missing parse error
 language/expressions/object/method-definition/early-errors-object-method-await-in-formals.js (default)
   Missing parse error
-language/expressions/object/method-definition/early-errors-object-method-body-contains-super-call.js (strict mode)
-  Missing parse error
-language/expressions/object/method-definition/early-errors-object-method-body-contains-super-call.js (default)
-  Missing parse error
 language/expressions/object/method-definition/early-errors-object-method-duplicate-parameters.js (default)
-  Missing parse error
-language/expressions/object/method-definition/early-errors-object-method-formals-contains-super-call.js (strict mode)
-  Missing parse error
-language/expressions/object/method-definition/early-errors-object-method-formals-contains-super-call.js (default)
   Missing parse error
 language/expressions/object/method-definition/generator-param-redecl-const.js (strict mode)
   Missing parse error
@@ -565,14 +355,6 @@ language/expressions/object/method-definition/generator-param-redecl-const.js (d
 language/expressions/object/method-definition/generator-param-redecl-let.js (strict mode)
   Missing parse error
 language/expressions/object/method-definition/generator-param-redecl-let.js (default)
-  Missing parse error
-language/expressions/object/method-definition/generator-super-call-body.js (strict mode)
-  Missing parse error
-language/expressions/object/method-definition/generator-super-call-body.js (default)
-  Missing parse error
-language/expressions/object/method-definition/generator-super-call-param.js (strict mode)
-  Missing parse error
-language/expressions/object/method-definition/generator-super-call-param.js (default)
   Missing parse error
 language/expressions/object/method-definition/generator-use-strict-with-non-simple-param.js (strict mode)
   Missing parse error
@@ -589,14 +371,6 @@ language/expressions/object/method-definition/setter-use-strict-with-non-simple-
 language/expressions/object/method-definition/use-strict-with-non-simple-param.js (strict mode)
   Missing parse error
 language/expressions/object/method-definition/use-strict-with-non-simple-param.js (default)
-  Missing parse error
-language/expressions/object/method-definition/yield-star-after-newline.js (strict mode)
-  Missing parse error
-language/expressions/object/method-definition/yield-star-after-newline.js (default)
-  Missing parse error
-language/expressions/object/prop-def-invalid-async-prefix.js (strict mode)
-  Missing parse error
-language/expressions/object/prop-def-invalid-async-prefix.js (default)
   Missing parse error
 language/expressions/tagged-template/invalid-escape-sequences.js (strict mode)
   Unexpected token ILLEGAL at (21, 4) to (21, 5)
@@ -622,93 +396,9 @@ language/global-code/new.target.js (strict mode)
   Unexpected token . at (19, 3) to (19, 4)
 language/global-code/new.target.js (default)
   Unexpected token . at (19, 3) to (19, 4)
-language/global-code/super-call-arrow.js (strict mode)
-  Missing parse error
-language/global-code/super-call-arrow.js (default)
-  Missing parse error
-language/global-code/super-call.js (strict mode)
-  Missing parse error
-language/global-code/super-call.js (default)
-  Missing parse error
-language/global-code/super-prop-arrow.js (strict mode)
-  Missing parse error
-language/global-code/super-prop-arrow.js (default)
-  Missing parse error
-language/global-code/super-prop.js (strict mode)
-  Missing parse error
-language/global-code/super-prop.js (default)
-  Missing parse error
-language/identifiers/part-digits-via-escape-hex.js (strict mode)
-  Unexpected token ILLEGAL at (10, 5) to (10, 6)
-language/identifiers/part-digits-via-escape-hex.js (default)
-  Unexpected token ILLEGAL at (10, 5) to (10, 6)
-language/identifiers/part-digits-via-escape-hex4.js (strict mode)
-  Unexpected token ILLEGAL at (10, 5) to (10, 6)
-language/identifiers/part-digits-via-escape-hex4.js (default)
-  Unexpected token ILLEGAL at (10, 5) to (10, 6)
-language/identifiers/start-escape-seq.js (strict mode)
-  Unexpected token ILLEGAL at (10, 4) to (10, 5)
-language/identifiers/start-escape-seq.js (default)
-  Unexpected token ILLEGAL at (10, 4) to (10, 5)
-language/identifiers/val-dollar-sign-via-escape-hex.js (strict mode)
-  Unexpected token ILLEGAL at (10, 4) to (10, 5)
-language/identifiers/val-dollar-sign-via-escape-hex.js (default)
-  Unexpected token ILLEGAL at (10, 4) to (10, 5)
-language/identifiers/val-dollar-sign-via-escape-hex4.js (strict mode)
-  Unexpected token ILLEGAL at (10, 4) to (10, 5)
-language/identifiers/val-dollar-sign-via-escape-hex4.js (default)
-  Unexpected token ILLEGAL at (10, 4) to (10, 5)
-language/identifiers/val-underscore-via-escape-hex.js (strict mode)
-  Unexpected token ILLEGAL at (10, 4) to (10, 5)
-language/identifiers/val-underscore-via-escape-hex.js (default)
-  Unexpected token ILLEGAL at (10, 4) to (10, 5)
-language/identifiers/val-underscore-via-escape-hex4.js (strict mode)
-  Unexpected token ILLEGAL at (10, 4) to (10, 5)
-language/identifiers/val-underscore-via-escape-hex4.js (default)
-  Unexpected token ILLEGAL at (10, 4) to (10, 5)
-language/identifiers/vals-eng-alpha-lower-via-escape-hex.js (strict mode)
-  Unexpected token ILLEGAL at (10, 4) to (10, 5)
-language/identifiers/vals-eng-alpha-lower-via-escape-hex.js (default)
-  Unexpected token ILLEGAL at (10, 4) to (10, 5)
-language/identifiers/vals-eng-alpha-lower-via-escape-hex4.js (strict mode)
-  Unexpected token ILLEGAL at (10, 4) to (10, 5)
-language/identifiers/vals-eng-alpha-lower-via-escape-hex4.js (default)
-  Unexpected token ILLEGAL at (10, 4) to (10, 5)
-language/identifiers/vals-eng-alpha-upper-via-escape-hex.js (strict mode)
-  Unexpected token ILLEGAL at (10, 4) to (10, 5)
-language/identifiers/vals-eng-alpha-upper-via-escape-hex.js (default)
-  Unexpected token ILLEGAL at (10, 4) to (10, 5)
-language/identifiers/vals-eng-alpha-upper-via-escape-hex4.js (strict mode)
-  Unexpected token ILLEGAL at (10, 4) to (10, 5)
-language/identifiers/vals-eng-alpha-upper-via-escape-hex4.js (default)
-  Unexpected token ILLEGAL at (10, 4) to (10, 5)
-language/identifiers/vals-rus-alpha-lower-via-escape-hex.js (strict mode)
-  Unexpected token ILLEGAL at (10, 4) to (10, 5)
-language/identifiers/vals-rus-alpha-lower-via-escape-hex.js (default)
-  Unexpected token ILLEGAL at (10, 4) to (10, 5)
-language/identifiers/vals-rus-alpha-lower-via-escape-hex4.js (strict mode)
-  Unexpected token ILLEGAL at (10, 4) to (10, 5)
-language/identifiers/vals-rus-alpha-lower-via-escape-hex4.js (default)
-  Unexpected token ILLEGAL at (10, 4) to (10, 5)
-language/identifiers/vals-rus-alpha-upper-via-escape-hex.js (strict mode)
-  Unexpected token ILLEGAL at (10, 4) to (10, 5)
-language/identifiers/vals-rus-alpha-upper-via-escape-hex.js (default)
-  Unexpected token ILLEGAL at (10, 4) to (10, 5)
-language/identifiers/vals-rus-alpha-upper-via-escape-hex4.js (strict mode)
-  Unexpected token ILLEGAL at (10, 4) to (10, 5)
-language/identifiers/vals-rus-alpha-upper-via-escape-hex4.js (default)
-  Unexpected token ILLEGAL at (10, 4) to (10, 5)
 language/import/dup-bound-names.js (strict mode)
   Missing parse error
 language/import/dup-bound-names.js (default)
-  Missing parse error
-language/line-terminators/S7.3_A3.3_T1.js (strict mode)
-  Missing parse error
-language/line-terminators/S7.3_A3.3_T1.js (default)
-  Missing parse error
-language/line-terminators/S7.3_A3.4_T1.js (strict mode)
-  Missing parse error
-language/line-terminators/S7.3_A3.4_T1.js (default)
   Missing parse error
 language/literals/numeric/non-octal-decimal-integer-strict.js (strict mode)
   Missing parse error
@@ -840,10 +530,6 @@ language/module-code/instn-resolve-order-src.js (strict mode)
   Missing parse error
 language/module-code/instn-resolve-order-src.js (default)
   Missing parse error
-language/module-code/namespace/internals/own-property-keys-sort.js (strict mode)
-  Unexpected token ILLEGAL at (22, 14) to (22, 15)
-language/module-code/namespace/internals/own-property-keys-sort.js (default)
-  Unexpected token ILLEGAL at (22, 14) to (22, 15)
 language/module-code/parse-err-hoist-lex-fun.js (strict mode)
   Missing parse error
 language/module-code/parse-err-hoist-lex-fun.js (default)
@@ -870,25 +556,9 @@ language/statements/async-function/early-errors-declaration-await-in-formals.js 
   Missing parse error
 language/statements/async-function/early-errors-declaration-await-in-formals.js (default)
   Missing parse error
-language/statements/async-function/early-errors-declaration-body-contains-super-call.js (strict mode)
-  Missing parse error
-language/statements/async-function/early-errors-declaration-body-contains-super-call.js (default)
-  Missing parse error
-language/statements/async-function/early-errors-declaration-body-contains-super-property.js (strict mode)
-  Missing parse error
-language/statements/async-function/early-errors-declaration-body-contains-super-property.js (default)
-  Missing parse error
 language/statements/async-function/early-errors-declaration-formals-body-duplicate.js (strict mode)
   Missing parse error
 language/statements/async-function/early-errors-declaration-formals-body-duplicate.js (default)
-  Missing parse error
-language/statements/async-function/early-errors-declaration-formals-contains-super-call.js (strict mode)
-  Missing parse error
-language/statements/async-function/early-errors-declaration-formals-contains-super-call.js (default)
-  Missing parse error
-language/statements/async-function/early-errors-declaration-formals-contains-super-property.js (strict mode)
-  Missing parse error
-language/statements/async-function/early-errors-declaration-formals-contains-super-property.js (default)
   Missing parse error
 language/statements/class/definition/early-errors-class-method-NSPL-with-USD.js (strict mode)
   Missing parse error
@@ -902,57 +572,21 @@ language/statements/class/definition/early-errors-class-method-await-in-formals.
   Missing parse error
 language/statements/class/definition/early-errors-class-method-await-in-formals.js (default)
   Missing parse error
-language/statements/class/definition/early-errors-class-method-body-contains-super-call.js (strict mode)
-  Missing parse error
-language/statements/class/definition/early-errors-class-method-body-contains-super-call.js (default)
-  Missing parse error
-language/statements/class/definition/early-errors-class-method-formals-contains-super-call.js (strict mode)
-  Missing parse error
-language/statements/class/definition/early-errors-class-method-formals-contains-super-call.js (default)
-  Missing parse error
-language/statements/class/definition/methods-gen-yield-star-after-newline.js (strict mode)
-  Missing parse error
-language/statements/class/definition/methods-gen-yield-star-after-newline.js (default)
-  Missing parse error
 language/statements/class/syntax/early-errors/class-body-has-direct-super-missing-class-heritage.js (strict mode)
   Missing parse error
 language/statements/class/syntax/early-errors/class-body-has-direct-super-missing-class-heritage.js (default)
-  Missing parse error
-language/statements/class/syntax/early-errors/class-body-method-contains-direct-super.js (strict mode)
-  Missing parse error
-language/statements/class/syntax/early-errors/class-body-method-contains-direct-super.js (default)
-  Missing parse error
-language/statements/class/syntax/early-errors/class-body-special-method-generator-contains-direct-super.js (strict mode)
-  Missing parse error
-language/statements/class/syntax/early-errors/class-body-special-method-generator-contains-direct-super.js (default)
   Missing parse error
 language/statements/class/syntax/early-errors/class-body-special-method-generator-propname-constructor.js (strict mode)
   Missing parse error
 language/statements/class/syntax/early-errors/class-body-special-method-generator-propname-constructor.js (default)
   Missing parse error
-language/statements/class/syntax/early-errors/class-body-special-method-get-contains-direct-super.js (strict mode)
-  Missing parse error
-language/statements/class/syntax/early-errors/class-body-special-method-get-contains-direct-super.js (default)
-  Missing parse error
 language/statements/class/syntax/early-errors/class-body-special-method-get-propname-constructor.js (strict mode)
   Missing parse error
 language/statements/class/syntax/early-errors/class-body-special-method-get-propname-constructor.js (default)
   Missing parse error
-language/statements/class/syntax/early-errors/class-body-special-method-set-contains-direct-super.js (strict mode)
-  Missing parse error
-language/statements/class/syntax/early-errors/class-body-special-method-set-contains-direct-super.js (default)
-  Missing parse error
 language/statements/class/syntax/early-errors/class-body-special-method-set-propname-constructor.js (strict mode)
   Missing parse error
 language/statements/class/syntax/early-errors/class-body-special-method-set-propname-constructor.js (default)
-  Missing parse error
-language/statements/class/syntax/early-errors/class-body-static-method-contains-direct-super.js (strict mode)
-  Missing parse error
-language/statements/class/syntax/early-errors/class-body-static-method-contains-direct-super.js (default)
-  Missing parse error
-language/statements/class/syntax/early-errors/class-body-static-method-get-contains-direct-super.js (strict mode)
-  Missing parse error
-language/statements/class/syntax/early-errors/class-body-static-method-get-contains-direct-super.js (default)
   Missing parse error
 language/statements/class/syntax/early-errors/class-body-static-method-get-propname-prototype.js (strict mode)
   Missing parse error
@@ -961,10 +595,6 @@ language/statements/class/syntax/early-errors/class-body-static-method-get-propn
 language/statements/class/syntax/early-errors/class-body-static-method-propname-prototype.js (strict mode)
   Missing parse error
 language/statements/class/syntax/early-errors/class-body-static-method-propname-prototype.js (default)
-  Missing parse error
-language/statements/class/syntax/early-errors/class-body-static-method-set-contains-direct-super.js (strict mode)
-  Missing parse error
-language/statements/class/syntax/early-errors/class-body-static-method-set-contains-direct-super.js (default)
   Missing parse error
 language/statements/class/syntax/early-errors/class-definition-evaluation-block-duplicate-binding.js (strict mode)
   Missing parse error
@@ -975,154 +605,6 @@ language/statements/class/syntax/early-errors/class-definition-evaluation-script
 language/statements/class/syntax/early-errors/class-definition-evaluation-scriptbody-duplicate-binding.js (default)
   Missing parse error
 language/statements/const/redeclaration-error-from-within-strict-mode-function-const.js (default)
-  Missing parse error
-language/statements/do-while/S12.6.1_A15.js (strict mode)
-  Missing parse error
-language/statements/do-while/S12.6.1_A15.js (default)
-  Missing parse error
-language/statements/do-while/let-array-with-newline.js (default)
-  Missing parse error
-language/statements/for-await-of/async-func-decl-dstr-array-elem-nested-obj-yield-ident-valid.js (default)
-  Unexpected token = at (32, 18) to (32, 19)
-language/statements/for-await-of/async-func-decl-dstr-array-rest-nested-obj-yield-ident-valid.js (default)
-  Unexpected token = at (32, 21) to (32, 22)
-language/statements/for-await-of/async-func-decl-dstr-obj-id-init-assignment-missing.js (strict mode)
-  Unexpected token = at (31, 17) to (31, 18)
-language/statements/for-await-of/async-func-decl-dstr-obj-id-init-assignment-missing.js (default)
-  Unexpected token = at (31, 17) to (31, 18)
-language/statements/for-await-of/async-func-decl-dstr-obj-id-init-assignment-null.js (strict mode)
-  Unexpected token = at (31, 17) to (31, 18)
-language/statements/for-await-of/async-func-decl-dstr-obj-id-init-assignment-null.js (default)
-  Unexpected token = at (31, 17) to (31, 18)
-language/statements/for-await-of/async-func-decl-dstr-obj-id-init-assignment-truthy.js (strict mode)
-  Unexpected token = at (31, 17) to (31, 18)
-language/statements/for-await-of/async-func-decl-dstr-obj-id-init-assignment-truthy.js (default)
-  Unexpected token = at (31, 17) to (31, 18)
-language/statements/for-await-of/async-func-decl-dstr-obj-id-init-assignment-undef.js (strict mode)
-  Unexpected token = at (31, 17) to (31, 18)
-language/statements/for-await-of/async-func-decl-dstr-obj-id-init-assignment-undef.js (default)
-  Unexpected token = at (31, 17) to (31, 18)
-language/statements/for-await-of/async-func-decl-dstr-obj-id-init-evaluation.js (strict mode)
-  Unexpected token = at (33, 17) to (33, 18)
-language/statements/for-await-of/async-func-decl-dstr-obj-id-init-evaluation.js (default)
-  Unexpected token = at (33, 17) to (33, 18)
-language/statements/for-await-of/async-func-decl-dstr-obj-id-init-fn-name-arrow.js (strict mode)
-  Unexpected token = at (41, 21) to (41, 22)
-language/statements/for-await-of/async-func-decl-dstr-obj-id-init-fn-name-arrow.js (default)
-  Unexpected token = at (41, 21) to (41, 22)
-language/statements/for-await-of/async-func-decl-dstr-obj-id-init-fn-name-class.js (strict mode)
-  Unexpected token = at (41, 20) to (41, 21)
-language/statements/for-await-of/async-func-decl-dstr-obj-id-init-fn-name-class.js (default)
-  Unexpected token = at (41, 20) to (41, 21)
-language/statements/for-await-of/async-func-decl-dstr-obj-id-init-fn-name-cover.js (strict mode)
-  Unexpected token = at (41, 22) to (41, 23)
-language/statements/for-await-of/async-func-decl-dstr-obj-id-init-fn-name-cover.js (default)
-  Unexpected token = at (41, 22) to (41, 23)
-language/statements/for-await-of/async-func-decl-dstr-obj-id-init-fn-name-fn.js (strict mode)
-  Unexpected token = at (41, 22) to (41, 23)
-language/statements/for-await-of/async-func-decl-dstr-obj-id-init-fn-name-fn.js (default)
-  Unexpected token = at (41, 22) to (41, 23)
-language/statements/for-await-of/async-func-decl-dstr-obj-id-init-fn-name-gen.js (strict mode)
-  Unexpected token = at (41, 20) to (41, 21)
-language/statements/for-await-of/async-func-decl-dstr-obj-id-init-fn-name-gen.js (default)
-  Unexpected token = at (41, 20) to (41, 21)
-language/statements/for-await-of/async-func-decl-dstr-obj-id-init-in.js (strict mode)
-  Unexpected token = at (31, 20) to (31, 21)
-language/statements/for-await-of/async-func-decl-dstr-obj-id-init-in.js (default)
-  Unexpected token = at (31, 20) to (31, 21)
-language/statements/for-await-of/async-func-decl-dstr-obj-id-init-order.js (strict mode)
-  Unexpected token = at (32, 17) to (32, 18)
-language/statements/for-await-of/async-func-decl-dstr-obj-id-init-order.js (default)
-  Unexpected token = at (32, 17) to (32, 18)
-language/statements/for-await-of/async-func-decl-dstr-obj-id-init-simple-no-strict.js (default)
-  Unexpected token = at (31, 20) to (31, 21)
-language/statements/for-await-of/async-func-decl-dstr-obj-id-init-yield-ident-valid.js (default)
-  Unexpected token = at (32, 17) to (32, 18)
-language/statements/for-await-of/async-func-decl-dstr-obj-prop-nested-obj-yield-ident-valid.js (default)
-  Unexpected token = at (32, 22) to (32, 23)
-language/statements/for-await-of/async-gen-decl-dstr-array-elem-nested-obj-yield-expr.js (strict mode)
-  Unexpected token = at (33, 18) to (33, 19)
-language/statements/for-await-of/async-gen-decl-dstr-array-elem-nested-obj-yield-expr.js (default)
-  Unexpected token = at (33, 18) to (33, 19)
-language/statements/for-await-of/async-gen-decl-dstr-array-rest-nested-obj-yield-expr.js (strict mode)
-  Unexpected token = at (32, 21) to (32, 22)
-language/statements/for-await-of/async-gen-decl-dstr-array-rest-nested-obj-yield-expr.js (default)
-  Unexpected token = at (32, 21) to (32, 22)
-language/statements/for-await-of/async-gen-decl-dstr-obj-id-init-assignment-missing.js (strict mode)
-  Unexpected token = at (31, 17) to (31, 18)
-language/statements/for-await-of/async-gen-decl-dstr-obj-id-init-assignment-missing.js (default)
-  Unexpected token = at (31, 17) to (31, 18)
-language/statements/for-await-of/async-gen-decl-dstr-obj-id-init-assignment-null.js (strict mode)
-  Unexpected token = at (31, 17) to (31, 18)
-language/statements/for-await-of/async-gen-decl-dstr-obj-id-init-assignment-null.js (default)
-  Unexpected token = at (31, 17) to (31, 18)
-language/statements/for-await-of/async-gen-decl-dstr-obj-id-init-assignment-truthy.js (strict mode)
-  Unexpected token = at (31, 17) to (31, 18)
-language/statements/for-await-of/async-gen-decl-dstr-obj-id-init-assignment-truthy.js (default)
-  Unexpected token = at (31, 17) to (31, 18)
-language/statements/for-await-of/async-gen-decl-dstr-obj-id-init-assignment-undef.js (strict mode)
-  Unexpected token = at (31, 17) to (31, 18)
-language/statements/for-await-of/async-gen-decl-dstr-obj-id-init-assignment-undef.js (default)
-  Unexpected token = at (31, 17) to (31, 18)
-language/statements/for-await-of/async-gen-decl-dstr-obj-id-init-evaluation.js (strict mode)
-  Unexpected token = at (33, 17) to (33, 18)
-language/statements/for-await-of/async-gen-decl-dstr-obj-id-init-evaluation.js (default)
-  Unexpected token = at (33, 17) to (33, 18)
-language/statements/for-await-of/async-gen-decl-dstr-obj-id-init-fn-name-arrow.js (strict mode)
-  Unexpected token = at (41, 21) to (41, 22)
-language/statements/for-await-of/async-gen-decl-dstr-obj-id-init-fn-name-arrow.js (default)
-  Unexpected token = at (41, 21) to (41, 22)
-language/statements/for-await-of/async-gen-decl-dstr-obj-id-init-fn-name-class.js (strict mode)
-  Unexpected token = at (41, 20) to (41, 21)
-language/statements/for-await-of/async-gen-decl-dstr-obj-id-init-fn-name-class.js (default)
-  Unexpected token = at (41, 20) to (41, 21)
-language/statements/for-await-of/async-gen-decl-dstr-obj-id-init-fn-name-cover.js (strict mode)
-  Unexpected token = at (41, 22) to (41, 23)
-language/statements/for-await-of/async-gen-decl-dstr-obj-id-init-fn-name-cover.js (default)
-  Unexpected token = at (41, 22) to (41, 23)
-language/statements/for-await-of/async-gen-decl-dstr-obj-id-init-fn-name-fn.js (strict mode)
-  Unexpected token = at (41, 22) to (41, 23)
-language/statements/for-await-of/async-gen-decl-dstr-obj-id-init-fn-name-fn.js (default)
-  Unexpected token = at (41, 22) to (41, 23)
-language/statements/for-await-of/async-gen-decl-dstr-obj-id-init-fn-name-gen.js (strict mode)
-  Unexpected token = at (41, 20) to (41, 21)
-language/statements/for-await-of/async-gen-decl-dstr-obj-id-init-fn-name-gen.js (default)
-  Unexpected token = at (41, 20) to (41, 21)
-language/statements/for-await-of/async-gen-decl-dstr-obj-id-init-in.js (strict mode)
-  Unexpected token = at (31, 20) to (31, 21)
-language/statements/for-await-of/async-gen-decl-dstr-obj-id-init-in.js (default)
-  Unexpected token = at (31, 20) to (31, 21)
-language/statements/for-await-of/async-gen-decl-dstr-obj-id-init-order.js (strict mode)
-  Unexpected token = at (32, 17) to (32, 18)
-language/statements/for-await-of/async-gen-decl-dstr-obj-id-init-order.js (default)
-  Unexpected token = at (32, 17) to (32, 18)
-language/statements/for-await-of/async-gen-decl-dstr-obj-id-init-simple-no-strict.js (default)
-  Unexpected token = at (31, 20) to (31, 21)
-language/statements/for-await-of/async-gen-decl-dstr-obj-id-init-yield-expr.js (strict mode)
-  Unexpected token = at (32, 17) to (32, 18)
-language/statements/for-await-of/async-gen-decl-dstr-obj-id-init-yield-expr.js (default)
-  Unexpected token = at (32, 17) to (32, 18)
-language/statements/for-await-of/async-gen-decl-dstr-obj-prop-nested-obj-yield-expr.js (strict mode)
-  Unexpected token = at (32, 22) to (32, 23)
-language/statements/for-await-of/async-gen-decl-dstr-obj-prop-nested-obj-yield-expr.js (default)
-  Unexpected token = at (32, 22) to (32, 23)
-language/statements/for-await-of/let-array-with-newline.js (default)
-  Missing parse error
-language/statements/for-in/decl-async-fun.js (strict mode)
-  Missing parse error
-language/statements/for-in/decl-async-fun.js (default)
-  Missing parse error
-language/statements/for-in/decl-async-gen.js (strict mode)
-  Missing parse error
-language/statements/for-in/decl-async-gen.js (default)
-  Missing parse error
-language/statements/for-in/dstr-array-rest-before-elision.js (strict mode)
-  Missing parse error
-language/statements/for-in/dstr-array-rest-before-elision.js (default)
-  Missing parse error
-language/statements/for-in/dstr-array-rest-elision-invalid.js (strict mode)
-  Missing parse error
-language/statements/for-in/dstr-array-rest-elision-invalid.js (default)
   Missing parse error
 language/statements/for-in/head-const-bound-names-dup.js (strict mode)
   Missing parse error
@@ -1140,108 +622,8 @@ language/statements/for-in/head-let-bound-names-in-stmt.js (strict mode)
   Missing parse error
 language/statements/for-in/head-let-bound-names-in-stmt.js (default)
   Missing parse error
-language/statements/for-in/head-lhs-invalid-asnmt-ptrn-obj.js (strict mode)
-  Missing parse error
-language/statements/for-in/head-lhs-invalid-asnmt-ptrn-obj.js (default)
-  Missing parse error
 language/statements/for-in/head-lhs-let.js (default)
   Unexpected token in at (27, 10) to (27, 12)
-language/statements/for-in/let-array-with-newline.js (default)
-  Missing parse error
-language/statements/for-of/decl-async-fun.js (strict mode)
-  Missing parse error
-language/statements/for-of/decl-async-fun.js (default)
-  Missing parse error
-language/statements/for-of/decl-async-gen.js (strict mode)
-  Missing parse error
-language/statements/for-of/decl-async-gen.js (default)
-  Missing parse error
-language/statements/for-of/dstr-array-elem-nested-obj-yield-expr.js (strict mode)
-  Unexpected token = at (34, 10) to (34, 11)
-language/statements/for-of/dstr-array-elem-nested-obj-yield-expr.js (default)
-  Unexpected token = at (34, 10) to (34, 11)
-language/statements/for-of/dstr-array-elem-nested-obj-yield-ident-valid.js (default)
-  Unexpected token = at (33, 10) to (33, 11)
-language/statements/for-of/dstr-array-rest-before-elision.js (strict mode)
-  Missing parse error
-language/statements/for-of/dstr-array-rest-before-elision.js (default)
-  Missing parse error
-language/statements/for-of/dstr-array-rest-elision-invalid.js (strict mode)
-  Missing parse error
-language/statements/for-of/dstr-array-rest-elision-invalid.js (default)
-  Missing parse error
-language/statements/for-of/dstr-array-rest-nested-obj-yield-expr.js (strict mode)
-  Unexpected token = at (34, 13) to (34, 14)
-language/statements/for-of/dstr-array-rest-nested-obj-yield-expr.js (default)
-  Unexpected token = at (34, 13) to (34, 14)
-language/statements/for-of/dstr-array-rest-nested-obj-yield-ident-valid.js (default)
-  Unexpected token = at (33, 13) to (33, 14)
-language/statements/for-of/dstr-obj-id-init-assignment-missing.js (strict mode)
-  Unexpected token = at (32, 9) to (32, 10)
-language/statements/for-of/dstr-obj-id-init-assignment-missing.js (default)
-  Unexpected token = at (32, 9) to (32, 10)
-language/statements/for-of/dstr-obj-id-init-assignment-null.js (strict mode)
-  Unexpected token = at (32, 9) to (32, 10)
-language/statements/for-of/dstr-obj-id-init-assignment-null.js (default)
-  Unexpected token = at (32, 9) to (32, 10)
-language/statements/for-of/dstr-obj-id-init-assignment-truthy.js (strict mode)
-  Unexpected token = at (32, 9) to (32, 10)
-language/statements/for-of/dstr-obj-id-init-assignment-truthy.js (default)
-  Unexpected token = at (32, 9) to (32, 10)
-language/statements/for-of/dstr-obj-id-init-assignment-undef.js (strict mode)
-  Unexpected token = at (32, 9) to (32, 10)
-language/statements/for-of/dstr-obj-id-init-assignment-undef.js (default)
-  Unexpected token = at (32, 9) to (32, 10)
-language/statements/for-of/dstr-obj-id-init-evaluation.js (strict mode)
-  Unexpected token = at (34, 9) to (34, 10)
-language/statements/for-of/dstr-obj-id-init-evaluation.js (default)
-  Unexpected token = at (34, 9) to (34, 10)
-language/statements/for-of/dstr-obj-id-init-fn-name-arrow.js (strict mode)
-  Unexpected token = at (42, 13) to (42, 14)
-language/statements/for-of/dstr-obj-id-init-fn-name-arrow.js (default)
-  Unexpected token = at (42, 13) to (42, 14)
-language/statements/for-of/dstr-obj-id-init-fn-name-class.js (strict mode)
-  Unexpected token = at (42, 12) to (42, 13)
-language/statements/for-of/dstr-obj-id-init-fn-name-class.js (default)
-  Unexpected token = at (42, 12) to (42, 13)
-language/statements/for-of/dstr-obj-id-init-fn-name-cover.js (strict mode)
-  Unexpected token = at (42, 14) to (42, 15)
-language/statements/for-of/dstr-obj-id-init-fn-name-cover.js (default)
-  Unexpected token = at (42, 14) to (42, 15)
-language/statements/for-of/dstr-obj-id-init-fn-name-fn.js (strict mode)
-  Unexpected token = at (42, 11) to (42, 12)
-language/statements/for-of/dstr-obj-id-init-fn-name-fn.js (default)
-  Unexpected token = at (42, 11) to (42, 12)
-language/statements/for-of/dstr-obj-id-init-fn-name-gen.js (strict mode)
-  Unexpected token = at (42, 12) to (42, 13)
-language/statements/for-of/dstr-obj-id-init-fn-name-gen.js (default)
-  Unexpected token = at (42, 12) to (42, 13)
-language/statements/for-of/dstr-obj-id-init-in.js (strict mode)
-  Unexpected token = at (32, 12) to (32, 13)
-language/statements/for-of/dstr-obj-id-init-in.js (default)
-  Unexpected token = at (32, 12) to (32, 13)
-language/statements/for-of/dstr-obj-id-init-let.js (strict mode)
-  Unexpected token = at (33, 11) to (33, 12)
-language/statements/for-of/dstr-obj-id-init-let.js (default)
-  Unexpected token = at (33, 11) to (33, 12)
-language/statements/for-of/dstr-obj-id-init-order.js (strict mode)
-  Unexpected token = at (33, 9) to (33, 10)
-language/statements/for-of/dstr-obj-id-init-order.js (default)
-  Unexpected token = at (33, 9) to (33, 10)
-language/statements/for-of/dstr-obj-id-init-simple-no-strict.js (default)
-  Unexpected token = at (32, 12) to (32, 13)
-language/statements/for-of/dstr-obj-id-init-yield-expr.js (strict mode)
-  Unexpected token = at (34, 9) to (34, 10)
-language/statements/for-of/dstr-obj-id-init-yield-expr.js (default)
-  Unexpected token = at (34, 9) to (34, 10)
-language/statements/for-of/dstr-obj-id-init-yield-ident-valid.js (default)
-  Unexpected token = at (33, 9) to (33, 10)
-language/statements/for-of/dstr-obj-prop-nested-obj-yield-expr.js (strict mode)
-  Unexpected token = at (34, 14) to (34, 15)
-language/statements/for-of/dstr-obj-prop-nested-obj-yield-expr.js (default)
-  Unexpected token = at (34, 14) to (34, 15)
-language/statements/for-of/dstr-obj-prop-nested-obj-yield-ident-valid.js (default)
-  Unexpected token = at (33, 14) to (33, 15)
 language/statements/for-of/head-const-bound-names-dup.js (strict mode)
   Missing parse error
 language/statements/for-of/head-const-bound-names-dup.js (default)
@@ -1258,56 +640,12 @@ language/statements/for-of/head-let-bound-names-in-stmt.js (strict mode)
   Missing parse error
 language/statements/for-of/head-let-bound-names-in-stmt.js (default)
   Missing parse error
-language/statements/for-of/head-lhs-invalid-asnmt-ptrn-obj.js (strict mode)
-  Missing parse error
-language/statements/for-of/head-lhs-invalid-asnmt-ptrn-obj.js (default)
-  Missing parse error
-language/statements/for-of/let-array-with-newline.js (default)
-  Missing parse error
-language/statements/for/decl-async-fun.js (strict mode)
-  Missing parse error
-language/statements/for/decl-async-fun.js (default)
-  Missing parse error
-language/statements/for/decl-async-gen.js (strict mode)
-  Missing parse error
-language/statements/for/decl-async-gen.js (default)
-  Missing parse error
 language/statements/for/head-let-bound-names-in-stmt.js (strict mode)
   Missing parse error
 language/statements/for/head-let-bound-names-in-stmt.js (default)
   Missing parse error
 language/statements/for/head-lhs-let.js (default)
   Unexpected token = at (25, 4) to (25, 5)
-language/statements/for/let-array-with-newline.js (default)
-  Missing parse error
-language/statements/function/S13_A7_T1.js (strict mode)
-  Unexpected token ILLEGAL at (55, 25) to (55, 26)
-language/statements/function/S13_A7_T1.js (default)
-  Unexpected token ILLEGAL at (55, 25) to (55, 26)
-language/statements/function/S14_A5_T1.js (strict mode)
-  Unexpected token ILLEGAL at (23, 9) to (23, 10)
-language/statements/function/S14_A5_T1.js (default)
-  Unexpected token ILLEGAL at (23, 9) to (23, 10)
-language/statements/function/S14_A5_T2.js (strict mode)
-  Unexpected token ILLEGAL at (23, 9) to (23, 10)
-language/statements/function/S14_A5_T2.js (default)
-  Unexpected token ILLEGAL at (23, 9) to (23, 10)
-language/statements/function/early-body-super-call.js (strict mode)
-  Missing parse error
-language/statements/function/early-body-super-call.js (default)
-  Missing parse error
-language/statements/function/early-body-super-prop.js (strict mode)
-  Missing parse error
-language/statements/function/early-body-super-prop.js (default)
-  Missing parse error
-language/statements/function/early-params-super-call.js (strict mode)
-  Missing parse error
-language/statements/function/early-params-super-call.js (default)
-  Missing parse error
-language/statements/function/early-params-super-prop.js (strict mode)
-  Missing parse error
-language/statements/function/early-params-super-prop.js (default)
-  Missing parse error
 language/statements/function/use-strict-with-non-simple-param.js (strict mode)
   Missing parse error
 language/statements/function/use-strict-with-non-simple-param.js (default)
@@ -1316,56 +654,18 @@ language/statements/generators/use-strict-with-non-simple-param.js (strict mode)
   Missing parse error
 language/statements/generators/use-strict-with-non-simple-param.js (default)
   Missing parse error
-language/statements/generators/yield-star-after-newline.js (strict mode)
-  Missing parse error
-language/statements/generators/yield-star-after-newline.js (default)
-  Missing parse error
-language/statements/if/S12.5_A11.js (strict mode)
-  Missing parse error
-language/statements/if/S12.5_A11.js (default)
-  Missing parse error
-language/statements/if/if-async-fun-else-async-fun.js (default)
-  Missing parse error
-language/statements/if/if-async-fun-else-stmt.js (default)
-  Missing parse error
-language/statements/if/if-async-fun-no-else.js (default)
-  Missing parse error
-language/statements/if/if-async-gen-else-async-gen.js (default)
-  Missing parse error
-language/statements/if/if-async-gen-else-stmt.js (default)
-  Missing parse error
-language/statements/if/if-async-gen-no-else.js (default)
-  Missing parse error
-language/statements/if/if-gen-else-gen.js (default)
-  Missing parse error
-language/statements/if/if-gen-else-stmt.js (default)
-  Missing parse error
-language/statements/if/if-gen-no-else.js (default)
-  Missing parse error
-language/statements/if/if-stmt-else-async-fun.js (default)
-  Missing parse error
-language/statements/if/if-stmt-else-async-gen.js (default)
-  Missing parse error
-language/statements/if/if-stmt-else-gen.js (default)
-  Missing parse error
-language/statements/if/let-array-with-newline.js (default)
-  Missing parse error
 language/statements/labeled/continue.js (strict mode)
   Missing parse error
 language/statements/labeled/continue.js (default)
   Missing parse error
-language/statements/labeled/let-array-with-newline.js (default)
+language/statements/labeled/value-await-module-escaped.js (strict mode)
+  Missing parse error
+language/statements/labeled/value-await-module-escaped.js (default)
   Missing parse error
 language/statements/labeled/value-await-module.js (strict mode)
   Missing parse error
 language/statements/labeled/value-await-module.js (default)
   Missing parse error
-language/statements/labeled/value-await-non-module-escaped.js (strict mode)
-  Unexpected token ILLEGAL at (15, 2) to (15, 3)
-language/statements/labeled/value-await-non-module-escaped.js (default)
-  Unexpected token ILLEGAL at (15, 2) to (15, 3)
-language/statements/labeled/value-yield-non-strict-escaped.js (default)
-  Unexpected token ILLEGAL at (11, 2) to (11, 3)
 language/statements/let/redeclaration-error-from-within-strict-mode-function.js (default)
   Missing parse error
 language/statements/let/syntax/attempt-to-redeclare-let-binding-with-function-declaration.js (strict mode)
@@ -1376,8 +676,6 @@ language/statements/let/syntax/attempt-to-redeclare-let-binding-with-var.js (str
   Missing parse error
 language/statements/let/syntax/attempt-to-redeclare-let-binding-with-var.js (default)
   Missing parse error
-language/statements/let/syntax/escaped-let.js (default)
-  Unexpected token ILLEGAL at (22, 1) to (22, 2)
 language/statements/let/syntax/identifier-let-allowed-as-lefthandside-expression-non-strict.js (default)
   Unexpected token in at (10, 9) to (10, 11)
 language/statements/switch/syntax/redeclaration/async-function-declaration-attempt-to-redeclare-with-async-function-declaration.js (strict mode)
@@ -1630,342 +928,10 @@ language/statements/switch/syntax/redeclaration/var-declaration-attempt-to-redec
   Missing parse error
 language/statements/switch/syntax/redeclaration/var-declaration-attempt-to-redeclare-with-let-declaration.js (default)
   Missing parse error
-language/statements/try/dstr-ary-init-iter-close.js (strict mode)
-  Unexpected token [ at (46, 9) to (46, 10)
-language/statements/try/dstr-ary-init-iter-close.js (default)
-  Unexpected token [ at (46, 9) to (46, 10)
-language/statements/try/dstr-ary-init-iter-get-err.js (strict mode)
-  Unexpected token [ at (34, 11) to (34, 12)
-language/statements/try/dstr-ary-init-iter-get-err.js (default)
-  Unexpected token [ at (34, 11) to (34, 12)
-language/statements/try/dstr-ary-init-iter-no-close.js (strict mode)
-  Unexpected token [ at (46, 9) to (46, 10)
-language/statements/try/dstr-ary-init-iter-no-close.js (default)
-  Unexpected token [ at (46, 9) to (46, 10)
-language/statements/try/dstr-ary-name-iter-val.js (strict mode)
-  Unexpected token [ at (43, 9) to (43, 10)
-language/statements/try/dstr-ary-name-iter-val.js (default)
-  Unexpected token [ at (43, 9) to (43, 10)
-language/statements/try/dstr-ary-ptrn-elem-ary-elem-init.js (strict mode)
-  Unexpected token [ at (35, 9) to (35, 10)
-language/statements/try/dstr-ary-ptrn-elem-ary-elem-init.js (default)
-  Unexpected token [ at (35, 9) to (35, 10)
-language/statements/try/dstr-ary-ptrn-elem-ary-elem-iter.js (strict mode)
-  Unexpected token [ at (36, 9) to (36, 10)
-language/statements/try/dstr-ary-ptrn-elem-ary-elem-iter.js (default)
-  Unexpected token [ at (36, 9) to (36, 10)
-language/statements/try/dstr-ary-ptrn-elem-ary-elision-init.js (strict mode)
-  Unexpected token [ at (43, 9) to (43, 10)
-language/statements/try/dstr-ary-ptrn-elem-ary-elision-init.js (default)
-  Unexpected token [ at (43, 9) to (43, 10)
-language/statements/try/dstr-ary-ptrn-elem-ary-elision-iter.js (strict mode)
-  Unexpected token [ at (41, 9) to (41, 10)
-language/statements/try/dstr-ary-ptrn-elem-ary-elision-iter.js (default)
-  Unexpected token [ at (41, 9) to (41, 10)
-language/statements/try/dstr-ary-ptrn-elem-ary-empty-init.js (strict mode)
-  Unexpected token [ at (38, 9) to (38, 10)
-language/statements/try/dstr-ary-ptrn-elem-ary-empty-init.js (default)
-  Unexpected token [ at (38, 9) to (38, 10)
-language/statements/try/dstr-ary-ptrn-elem-ary-empty-iter.js (strict mode)
-  Unexpected token [ at (37, 9) to (37, 10)
-language/statements/try/dstr-ary-ptrn-elem-ary-empty-iter.js (default)
-  Unexpected token [ at (37, 9) to (37, 10)
-language/statements/try/dstr-ary-ptrn-elem-ary-rest-init.js (strict mode)
-  Unexpected token [ at (36, 9) to (36, 10)
-language/statements/try/dstr-ary-ptrn-elem-ary-rest-init.js (default)
-  Unexpected token [ at (36, 9) to (36, 10)
-language/statements/try/dstr-ary-ptrn-elem-ary-rest-iter.js (strict mode)
-  Unexpected token [ at (38, 9) to (38, 10)
-language/statements/try/dstr-ary-ptrn-elem-ary-rest-iter.js (default)
-  Unexpected token [ at (38, 9) to (38, 10)
-language/statements/try/dstr-ary-ptrn-elem-ary-val-null.js (strict mode)
-  Unexpected token [ at (41, 11) to (41, 12)
-language/statements/try/dstr-ary-ptrn-elem-ary-val-null.js (default)
-  Unexpected token [ at (41, 11) to (41, 12)
-language/statements/try/dstr-ary-ptrn-elem-id-init-exhausted.js (strict mode)
-  Unexpected token [ at (36, 9) to (36, 10)
-language/statements/try/dstr-ary-ptrn-elem-id-init-exhausted.js (default)
-  Unexpected token [ at (36, 9) to (36, 10)
-language/statements/try/dstr-ary-ptrn-elem-id-init-fn-name-arrow.js (strict mode)
-  Unexpected token [ at (37, 9) to (37, 10)
-language/statements/try/dstr-ary-ptrn-elem-id-init-fn-name-arrow.js (default)
-  Unexpected token [ at (37, 9) to (37, 10)
-language/statements/try/dstr-ary-ptrn-elem-id-init-fn-name-class.js (strict mode)
-  Unexpected token [ at (37, 9) to (37, 10)
-language/statements/try/dstr-ary-ptrn-elem-id-init-fn-name-class.js (default)
-  Unexpected token [ at (37, 9) to (37, 10)
-language/statements/try/dstr-ary-ptrn-elem-id-init-fn-name-cover.js (strict mode)
-  Unexpected token [ at (37, 9) to (37, 10)
-language/statements/try/dstr-ary-ptrn-elem-id-init-fn-name-cover.js (default)
-  Unexpected token [ at (37, 9) to (37, 10)
-language/statements/try/dstr-ary-ptrn-elem-id-init-fn-name-fn.js (strict mode)
-  Unexpected token [ at (37, 9) to (37, 10)
-language/statements/try/dstr-ary-ptrn-elem-id-init-fn-name-fn.js (default)
-  Unexpected token [ at (37, 9) to (37, 10)
-language/statements/try/dstr-ary-ptrn-elem-id-init-fn-name-gen.js (strict mode)
-  Unexpected token [ at (37, 9) to (37, 10)
-language/statements/try/dstr-ary-ptrn-elem-id-init-fn-name-gen.js (default)
-  Unexpected token [ at (37, 9) to (37, 10)
-language/statements/try/dstr-ary-ptrn-elem-id-init-hole.js (strict mode)
-  Unexpected token [ at (31, 9) to (31, 10)
-language/statements/try/dstr-ary-ptrn-elem-id-init-hole.js (default)
-  Unexpected token [ at (31, 9) to (31, 10)
-language/statements/try/dstr-ary-ptrn-elem-id-init-skipped.js (strict mode)
-  Unexpected token [ at (37, 9) to (37, 10)
-language/statements/try/dstr-ary-ptrn-elem-id-init-skipped.js (default)
-  Unexpected token [ at (37, 9) to (37, 10)
-language/statements/try/dstr-ary-ptrn-elem-id-init-throws.js (strict mode)
-  Unexpected token [ at (32, 11) to (32, 12)
-language/statements/try/dstr-ary-ptrn-elem-id-init-throws.js (default)
-  Unexpected token [ at (32, 11) to (32, 12)
-language/statements/try/dstr-ary-ptrn-elem-id-init-undef.js (strict mode)
-  Unexpected token [ at (35, 9) to (35, 10)
-language/statements/try/dstr-ary-ptrn-elem-id-init-undef.js (default)
-  Unexpected token [ at (35, 9) to (35, 10)
-language/statements/try/dstr-ary-ptrn-elem-id-init-unresolvable.js (strict mode)
-  Unexpected token [ at (39, 11) to (39, 12)
-language/statements/try/dstr-ary-ptrn-elem-id-init-unresolvable.js (default)
-  Unexpected token [ at (39, 11) to (39, 12)
-language/statements/try/dstr-ary-ptrn-elem-id-iter-complete.js (strict mode)
-  Unexpected token [ at (39, 9) to (39, 10)
-language/statements/try/dstr-ary-ptrn-elem-id-iter-complete.js (default)
-  Unexpected token [ at (39, 9) to (39, 10)
-language/statements/try/dstr-ary-ptrn-elem-id-iter-done.js (strict mode)
-  Unexpected token [ at (34, 9) to (34, 10)
-language/statements/try/dstr-ary-ptrn-elem-id-iter-done.js (default)
-  Unexpected token [ at (34, 9) to (34, 10)
-language/statements/try/dstr-ary-ptrn-elem-id-iter-step-err.js (strict mode)
-  Unexpected token [ at (40, 11) to (40, 12)
-language/statements/try/dstr-ary-ptrn-elem-id-iter-step-err.js (default)
-  Unexpected token [ at (40, 11) to (40, 12)
-language/statements/try/dstr-ary-ptrn-elem-id-iter-val-err.js (strict mode)
-  Unexpected token [ at (51, 11) to (51, 12)
-language/statements/try/dstr-ary-ptrn-elem-id-iter-val-err.js (default)
-  Unexpected token [ at (51, 11) to (51, 12)
-language/statements/try/dstr-ary-ptrn-elem-id-iter-val.js (strict mode)
-  Unexpected token [ at (43, 9) to (43, 10)
-language/statements/try/dstr-ary-ptrn-elem-id-iter-val.js (default)
-  Unexpected token [ at (43, 9) to (43, 10)
-language/statements/try/dstr-ary-ptrn-elem-obj-id-init.js (strict mode)
-  Unexpected token [ at (35, 9) to (35, 10)
-language/statements/try/dstr-ary-ptrn-elem-obj-id-init.js (default)
-  Unexpected token [ at (35, 9) to (35, 10)
-language/statements/try/dstr-ary-ptrn-elem-obj-id.js (strict mode)
-  Unexpected token [ at (35, 9) to (35, 10)
-language/statements/try/dstr-ary-ptrn-elem-obj-id.js (default)
-  Unexpected token [ at (35, 9) to (35, 10)
-language/statements/try/dstr-ary-ptrn-elem-obj-prop-id-init.js (strict mode)
-  Unexpected token [ at (35, 9) to (35, 10)
-language/statements/try/dstr-ary-ptrn-elem-obj-prop-id-init.js (default)
-  Unexpected token [ at (35, 9) to (35, 10)
-language/statements/try/dstr-ary-ptrn-elem-obj-prop-id.js (strict mode)
-  Unexpected token [ at (35, 9) to (35, 10)
-language/statements/try/dstr-ary-ptrn-elem-obj-prop-id.js (default)
-  Unexpected token [ at (35, 9) to (35, 10)
-language/statements/try/dstr-ary-ptrn-elem-obj-val-null.js (strict mode)
-  Unexpected token [ at (41, 11) to (41, 12)
-language/statements/try/dstr-ary-ptrn-elem-obj-val-null.js (default)
-  Unexpected token [ at (41, 11) to (41, 12)
-language/statements/try/dstr-ary-ptrn-elem-obj-val-undef.js (strict mode)
-  Unexpected token [ at (41, 11) to (41, 12)
-language/statements/try/dstr-ary-ptrn-elem-obj-val-undef.js (default)
-  Unexpected token [ at (41, 11) to (41, 12)
-language/statements/try/dstr-ary-ptrn-elision-exhausted.js (strict mode)
-  Unexpected token [ at (42, 9) to (42, 10)
-language/statements/try/dstr-ary-ptrn-elision-exhausted.js (default)
-  Unexpected token [ at (42, 9) to (42, 10)
-language/statements/try/dstr-ary-ptrn-elision-step-err.js (strict mode)
-  Unexpected token [ at (45, 11) to (45, 12)
-language/statements/try/dstr-ary-ptrn-elision-step-err.js (default)
-  Unexpected token [ at (45, 11) to (45, 12)
-language/statements/try/dstr-ary-ptrn-elision.js (strict mode)
-  Unexpected token [ at (50, 9) to (50, 10)
-language/statements/try/dstr-ary-ptrn-elision.js (default)
-  Unexpected token [ at (50, 9) to (50, 10)
-language/statements/try/dstr-ary-ptrn-empty.js (strict mode)
-  Unexpected token [ at (34, 9) to (34, 10)
-language/statements/try/dstr-ary-ptrn-empty.js (default)
-  Unexpected token [ at (34, 9) to (34, 10)
-language/statements/try/dstr-ary-ptrn-rest-ary-elem.js (strict mode)
-  Unexpected token [ at (56, 9) to (56, 10)
-language/statements/try/dstr-ary-ptrn-rest-ary-elem.js (default)
-  Unexpected token [ at (56, 9) to (56, 10)
-language/statements/try/dstr-ary-ptrn-rest-ary-elision.js (strict mode)
-  Unexpected token [ at (63, 9) to (63, 10)
-language/statements/try/dstr-ary-ptrn-rest-ary-elision.js (default)
-  Unexpected token [ at (63, 9) to (63, 10)
-language/statements/try/dstr-ary-ptrn-rest-ary-empty.js (strict mode)
-  Unexpected token [ at (47, 9) to (47, 10)
-language/statements/try/dstr-ary-ptrn-rest-ary-empty.js (default)
-  Unexpected token [ at (47, 9) to (47, 10)
-language/statements/try/dstr-ary-ptrn-rest-ary-rest.js (strict mode)
-  Unexpected token [ at (37, 9) to (37, 10)
-language/statements/try/dstr-ary-ptrn-rest-ary-rest.js (default)
-  Unexpected token [ at (37, 9) to (37, 10)
-language/statements/try/dstr-ary-ptrn-rest-id-elision-next-err.js (strict mode)
-  Unexpected token [ at (34, 11) to (34, 12)
-language/statements/try/dstr-ary-ptrn-rest-id-elision-next-err.js (default)
-  Unexpected token [ at (34, 11) to (34, 12)
-language/statements/try/dstr-ary-ptrn-rest-id-elision.js (strict mode)
-  Unexpected token [ at (34, 9) to (34, 10)
-language/statements/try/dstr-ary-ptrn-rest-id-elision.js (default)
-  Unexpected token [ at (34, 9) to (34, 10)
-language/statements/try/dstr-ary-ptrn-rest-id-exhausted.js (strict mode)
-  Unexpected token [ at (34, 9) to (34, 10)
-language/statements/try/dstr-ary-ptrn-rest-id-exhausted.js (default)
-  Unexpected token [ at (34, 9) to (34, 10)
-language/statements/try/dstr-ary-ptrn-rest-id-iter-step-err.js (strict mode)
-  Unexpected token [ at (41, 11) to (41, 12)
-language/statements/try/dstr-ary-ptrn-rest-id-iter-step-err.js (default)
-  Unexpected token [ at (41, 11) to (41, 12)
-language/statements/try/dstr-ary-ptrn-rest-id-iter-val-err.js (strict mode)
-  Unexpected token [ at (47, 11) to (47, 12)
-language/statements/try/dstr-ary-ptrn-rest-id-iter-val-err.js (default)
-  Unexpected token [ at (47, 11) to (47, 12)
-language/statements/try/dstr-ary-ptrn-rest-id.js (strict mode)
-  Unexpected token [ at (31, 9) to (31, 10)
-language/statements/try/dstr-ary-ptrn-rest-id.js (default)
-  Unexpected token [ at (31, 9) to (31, 10)
-language/statements/try/dstr-ary-ptrn-rest-obj-id.js (strict mode)
-  Unexpected token [ at (36, 9) to (36, 10)
-language/statements/try/dstr-ary-ptrn-rest-obj-id.js (default)
-  Unexpected token [ at (36, 9) to (36, 10)
-language/statements/try/dstr-ary-ptrn-rest-obj-prop-id.js (strict mode)
-  Unexpected token [ at (37, 9) to (37, 10)
-language/statements/try/dstr-ary-ptrn-rest-obj-prop-id.js (default)
-  Unexpected token [ at (37, 9) to (37, 10)
-language/statements/try/dstr-obj-init-null.js (strict mode)
-  Unexpected token { at (28, 11) to (28, 12)
-language/statements/try/dstr-obj-init-null.js (default)
-  Unexpected token { at (28, 11) to (28, 12)
-language/statements/try/dstr-obj-init-undefined.js (strict mode)
-  Unexpected token { at (28, 11) to (28, 12)
-language/statements/try/dstr-obj-init-undefined.js (default)
-  Unexpected token { at (28, 11) to (28, 12)
-language/statements/try/dstr-obj-ptrn-empty.js (strict mode)
-  Unexpected token { at (35, 9) to (35, 10)
-language/statements/try/dstr-obj-ptrn-empty.js (default)
-  Unexpected token { at (35, 9) to (35, 10)
-language/statements/try/dstr-obj-ptrn-id-get-value-err.js (strict mode)
-  Unexpected token { at (35, 11) to (35, 12)
-language/statements/try/dstr-obj-ptrn-id-get-value-err.js (default)
-  Unexpected token { at (35, 11) to (35, 12)
-language/statements/try/dstr-obj-ptrn-id-init-fn-name-arrow.js (strict mode)
-  Unexpected token { at (36, 9) to (36, 10)
-language/statements/try/dstr-obj-ptrn-id-init-fn-name-arrow.js (default)
-  Unexpected token { at (36, 9) to (36, 10)
-language/statements/try/dstr-obj-ptrn-id-init-fn-name-class.js (strict mode)
-  Unexpected token { at (36, 9) to (36, 10)
-language/statements/try/dstr-obj-ptrn-id-init-fn-name-class.js (default)
-  Unexpected token { at (36, 9) to (36, 10)
-language/statements/try/dstr-obj-ptrn-id-init-fn-name-cover.js (strict mode)
-  Unexpected token { at (36, 9) to (36, 10)
-language/statements/try/dstr-obj-ptrn-id-init-fn-name-cover.js (default)
-  Unexpected token { at (36, 9) to (36, 10)
-language/statements/try/dstr-obj-ptrn-id-init-fn-name-fn.js (strict mode)
-  Unexpected token { at (36, 9) to (36, 10)
-language/statements/try/dstr-obj-ptrn-id-init-fn-name-fn.js (default)
-  Unexpected token { at (36, 9) to (36, 10)
-language/statements/try/dstr-obj-ptrn-id-init-fn-name-gen.js (strict mode)
-  Unexpected token { at (36, 9) to (36, 10)
-language/statements/try/dstr-obj-ptrn-id-init-fn-name-gen.js (default)
-  Unexpected token { at (36, 9) to (36, 10)
-language/statements/try/dstr-obj-ptrn-id-init-skipped.js (strict mode)
-  Unexpected token { at (36, 9) to (36, 10)
-language/statements/try/dstr-obj-ptrn-id-init-skipped.js (default)
-  Unexpected token { at (36, 9) to (36, 10)
-language/statements/try/dstr-obj-ptrn-id-init-throws.js (strict mode)
-  Unexpected token { at (35, 11) to (35, 12)
-language/statements/try/dstr-obj-ptrn-id-init-throws.js (default)
-  Unexpected token { at (35, 11) to (35, 12)
-language/statements/try/dstr-obj-ptrn-id-init-unresolvable.js (strict mode)
-  Unexpected token { at (39, 11) to (39, 12)
-language/statements/try/dstr-obj-ptrn-id-init-unresolvable.js (default)
-  Unexpected token { at (39, 11) to (39, 12)
-language/statements/try/dstr-obj-ptrn-id-trailing-comma.js (strict mode)
-  Unexpected token { at (30, 9) to (30, 10)
-language/statements/try/dstr-obj-ptrn-id-trailing-comma.js (default)
-  Unexpected token { at (30, 9) to (30, 10)
-language/statements/try/dstr-obj-ptrn-list-err.js (strict mode)
-  Unexpected token { at (34, 11) to (34, 12)
-language/statements/try/dstr-obj-ptrn-list-err.js (default)
-  Unexpected token { at (34, 11) to (34, 12)
-language/statements/try/dstr-obj-ptrn-prop-ary-init.js (strict mode)
-  Unexpected token { at (33, 9) to (33, 10)
-language/statements/try/dstr-obj-ptrn-prop-ary-init.js (default)
-  Unexpected token { at (33, 9) to (33, 10)
-language/statements/try/dstr-obj-ptrn-prop-ary-trailing-comma.js (strict mode)
-  Unexpected token { at (30, 9) to (30, 10)
-language/statements/try/dstr-obj-ptrn-prop-ary-trailing-comma.js (default)
-  Unexpected token { at (30, 9) to (30, 10)
-language/statements/try/dstr-obj-ptrn-prop-ary-value-null.js (strict mode)
-  Unexpected token { at (30, 11) to (30, 12)
-language/statements/try/dstr-obj-ptrn-prop-ary-value-null.js (default)
-  Unexpected token { at (30, 11) to (30, 12)
-language/statements/try/dstr-obj-ptrn-prop-ary.js (strict mode)
-  Unexpected token { at (31, 9) to (31, 10)
-language/statements/try/dstr-obj-ptrn-prop-ary.js (default)
-  Unexpected token { at (31, 9) to (31, 10)
-language/statements/try/dstr-obj-ptrn-prop-eval-err.js (strict mode)
-  Unexpected token { at (32, 11) to (32, 12)
-language/statements/try/dstr-obj-ptrn-prop-eval-err.js (default)
-  Unexpected token { at (32, 11) to (32, 12)
-language/statements/try/dstr-obj-ptrn-prop-id-get-value-err.js (strict mode)
-  Unexpected token { at (35, 11) to (35, 12)
-language/statements/try/dstr-obj-ptrn-prop-id-get-value-err.js (default)
-  Unexpected token { at (35, 11) to (35, 12)
-language/statements/try/dstr-obj-ptrn-prop-id-init-skipped.js (strict mode)
-  Unexpected token { at (35, 9) to (35, 10)
-language/statements/try/dstr-obj-ptrn-prop-id-init-skipped.js (default)
-  Unexpected token { at (35, 9) to (35, 10)
-language/statements/try/dstr-obj-ptrn-prop-id-init-throws.js (strict mode)
-  Unexpected token { at (35, 11) to (35, 12)
-language/statements/try/dstr-obj-ptrn-prop-id-init-throws.js (default)
-  Unexpected token { at (35, 11) to (35, 12)
-language/statements/try/dstr-obj-ptrn-prop-id-init-unresolvable.js (strict mode)
-  Unexpected token { at (39, 11) to (39, 12)
-language/statements/try/dstr-obj-ptrn-prop-id-init-unresolvable.js (default)
-  Unexpected token { at (39, 11) to (39, 12)
-language/statements/try/dstr-obj-ptrn-prop-id-init.js (strict mode)
-  Unexpected token { at (30, 9) to (30, 10)
-language/statements/try/dstr-obj-ptrn-prop-id-init.js (default)
-  Unexpected token { at (30, 9) to (30, 10)
-language/statements/try/dstr-obj-ptrn-prop-id-trailing-comma.js (strict mode)
-  Unexpected token { at (30, 9) to (30, 10)
-language/statements/try/dstr-obj-ptrn-prop-id-trailing-comma.js (default)
-  Unexpected token { at (30, 9) to (30, 10)
-language/statements/try/dstr-obj-ptrn-prop-id.js (strict mode)
-  Unexpected token { at (30, 9) to (30, 10)
-language/statements/try/dstr-obj-ptrn-prop-id.js (default)
-  Unexpected token { at (30, 9) to (30, 10)
-language/statements/try/dstr-obj-ptrn-prop-obj-init.js (strict mode)
-  Unexpected token { at (33, 9) to (33, 10)
-language/statements/try/dstr-obj-ptrn-prop-obj-init.js (default)
-  Unexpected token { at (33, 9) to (33, 10)
-language/statements/try/dstr-obj-ptrn-prop-obj-value-null.js (strict mode)
-  Unexpected token { at (30, 11) to (30, 12)
-language/statements/try/dstr-obj-ptrn-prop-obj-value-null.js (default)
-  Unexpected token { at (30, 11) to (30, 12)
-language/statements/try/dstr-obj-ptrn-prop-obj-value-undef.js (strict mode)
-  Unexpected token { at (30, 11) to (30, 12)
-language/statements/try/dstr-obj-ptrn-prop-obj-value-undef.js (default)
-  Unexpected token { at (30, 11) to (30, 12)
-language/statements/try/dstr-obj-ptrn-prop-obj.js (strict mode)
-  Unexpected token { at (31, 9) to (31, 10)
-language/statements/try/dstr-obj-ptrn-prop-obj.js (default)
-  Unexpected token { at (31, 9) to (31, 10)
-language/statements/try/dstr-obj-ptrn-rest-getter.js (strict mode)
-  Unexpected token { at (25, 9) to (25, 10)
-language/statements/try/dstr-obj-ptrn-rest-getter.js (default)
-  Unexpected token { at (25, 9) to (25, 10)
-language/statements/try/dstr-obj-ptrn-rest-skip-non-enumerable.js (strict mode)
-  Unexpected token { at (26, 9) to (26, 10)
-language/statements/try/dstr-obj-ptrn-rest-skip-non-enumerable.js (default)
-  Unexpected token { at (26, 9) to (26, 10)
-language/statements/try/dstr-obj-ptrn-rest-val-obj.js (strict mode)
-  Unexpected token { at (24, 9) to (24, 10)
-language/statements/try/dstr-obj-ptrn-rest-val-obj.js (default)
-  Unexpected token { at (24, 9) to (24, 10)
+language/statements/try/early-catch-duplicates.js (strict mode)
+  Missing parse error
+language/statements/try/early-catch-duplicates.js (default)
+  Missing parse error
 language/statements/try/early-catch-lex.js (strict mode)
   Missing parse error
 language/statements/try/early-catch-lex.js (default)
@@ -1974,61 +940,18 @@ language/statements/try/early-catch-var.js (strict mode)
   Missing parse error
 language/statements/try/early-catch-var.js (default)
   Missing parse error
-language/statements/try/scope-catch-block-lex-open.js (strict mode)
-  Unexpected token [ at (18, 9) to (18, 10)
-language/statements/try/scope-catch-block-lex-open.js (default)
-  Unexpected token [ at (18, 9) to (18, 10)
-language/statements/try/scope-catch-param-lex-open.js (strict mode)
-  Unexpected token [ at (16, 9) to (16, 10)
-language/statements/try/scope-catch-param-lex-open.js (default)
-  Unexpected token [ at (16, 9) to (16, 10)
-language/statements/try/scope-catch-param-var-none.js (default)
-  Unexpected token [ at (17, 9) to (17, 10)
-language/statements/variable/S12.2_A4.js (strict mode)
-  Unexpected token ILLEGAL at (20, 4) to (20, 5)
-language/statements/variable/S12.2_A4.js (default)
-  Unexpected token ILLEGAL at (20, 4) to (20, 5)
-language/statements/while/S12.6.2_A15.js (strict mode)
-  Missing parse error
-language/statements/while/S12.6.2_A15.js (default)
-  Missing parse error
-language/statements/while/decl-async-fun.js (strict mode)
-  Missing parse error
-language/statements/while/decl-async-fun.js (default)
-  Missing parse error
-language/statements/while/decl-async-gen.js (strict mode)
-  Missing parse error
-language/statements/while/decl-async-gen.js (default)
-  Missing parse error
-language/statements/while/let-array-with-newline.js (default)
-  Missing parse error
-language/statements/with/decl-async-fun.js (default)
-  Missing parse error
-language/statements/with/decl-async-gen.js (default)
-  Missing parse error
-language/statements/with/let-array-with-newline.js (default)
-  Missing parse error
 language/white-space/mongolian-vowel-separator.js (strict mode)
   Missing parse error
 language/white-space/mongolian-vowel-separator.js (default)
   Missing parse error
 
 === Summary ===
-Passed: 54298 (98.18%)
-Failed: 1007 (1.82%)
+Passed: 54832 (99.14%)
+Failed: 473 (0.86%)
 
 Features:
-  Reflect: 244/246 (99.19%)
-  Symbol.iterator: 1314/1324 (99.24%)
-  Symbol.toStringTag: 80/82 (97.56%)
-  arrow-function: 18/24 (75.00%)
-  async-functions: 144/217 (66.36%)
-  async-iteration: 6898/7052 (97.82%)
-  class: 124/132 (93.94%)
-  destructuring-binding: 10379/10699 (97.01%)
-  generator: 390/396 (98.48%)
-  generators: 1287/1343 (95.83%)
-  let: 125/135 (92.59%)
-  object-rest: 614/620 (99.03%)
-  regexp-named-groups: 36/40 (90.00%)
-  super: 28/36 (77.78%)
+  arrow-function: 22/24 (91.67%)
+  async-functions: 157/217 (72.35%)
+  async-iteration: 6984/7052 (99.04%)
+  generators: 1339/1343 (99.70%)
+  let: 131/135 (97.04%)

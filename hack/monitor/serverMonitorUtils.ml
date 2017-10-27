@@ -22,6 +22,13 @@ type monitor_config =
     load_script_log_file: string;
   }
 
+(** Informant-induced restart may specify the mini saved state
+ * we should load from. *)
+type target_mini_state = {
+  mini_state_everstore_handle : string;
+  target_svn_rev : int;
+}
+
 module type Server_config = sig
 
   type server_start_options
@@ -29,6 +36,7 @@ module type Server_config = sig
   (** Start the server. Optionally takes in the exit code of the previously
    * running server that exited. *)
   val start_server :
+    ?target_mini_state:target_mini_state ->
     informant_managed:bool ->
     prior_exit_status:(int option) ->
     server_start_options ->
@@ -95,9 +103,6 @@ type ide_client_type =
 
 let send_ide_client_type oc (t : ide_client_type)=
   Marshal_tools.to_fd_with_preamble (Unix.descr_of_out_channel oc) t
-
-exception Server_shutting_down
-exception Last_server_died
 
 (* Message we send to the --waiting-client *)
 let ready = "ready"

@@ -1,11 +1,8 @@
 (**
  * Copyright (c) 2013-present, Facebook, Inc.
- * All rights reserved.
  *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the "flow" directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
  *)
 
 (***********************************************************************)
@@ -94,7 +91,7 @@ let main temp_dir from quiet root () =
     (Path.to_string root);
   CommandConnectSimple.(
     match connect_once ~tmp_dir root with
-    | Result.Ok conn ->
+    | Ok conn ->
         begin try
           if not quiet then prerr_endlinef
             "Attempting to nicely kill server for %s"
@@ -110,16 +107,16 @@ let main temp_dir from quiet root () =
           let msg = spf "Failed to kill server nicely for %s" root_s in
           FlowExitStatus.(exit ~msg Kill_error)
         end
-    | Result.Error Server_missing ->
+    | Error Server_missing ->
         if not quiet then prerr_endlinef
           "Warning: no server to kill for %s" root_s
-    | Result.Error Build_id_mismatch ->
+    | Error Build_id_mismatch ->
         if not quiet then prerr_endlinef
           "Successfully killed server for %s" root_s
-    | Result.Error Server_initializing
-    | Result.Error Server_rechecking
-    | Result.Error Server_gcollecting
-    | Result.Error Server_busy ->
+    | Error Server_initializing
+    | Error Server_rechecking
+    | Error Server_gcollecting
+    | Error Server_busy ->
         begin try
           if not quiet then prerr_endlinef
             "Attempting to meanly kill server for %s"
