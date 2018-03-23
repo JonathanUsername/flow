@@ -96,14 +96,18 @@ let check err severity_cover suppressions =
     check_locs locs suppressions lint_kind severity_cover
   in
   (* Ignore lints in node_modules folders (which we assume to be dependencies). *)
+  let primary_loc = Errors.loc_of_error err in
   let is_in_dependency =
-    let primary_loc = Errors.loc_of_error err in
     Option.value_map (Loc.source primary_loc) ~default:false ~f:(fun filename ->
       String_utils.is_substring "/node_modules/" (File_key.to_string filename))
   in
+  let is_whitelisted = Option.value_map (Loc.source primary_loc) ~default:false ~f:(
+      fun filename -> Whitelisting.filename_in_whitelist filename
+    )
+  in
   let result = match Errors.kind_of_error err with
     | Errors.RecursionLimitError -> Err
-    | _ -> if (is_in_dependency && (Option.is_some lint_kind))
+    | _ -> if ((is_in_dependency || is_whitelisted) && (Option.is_some lint_kind))
       then Off
       else result
   in (result, consumed, { suppressions; unused; unused_lint_suppressions; })
