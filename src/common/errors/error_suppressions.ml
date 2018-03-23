@@ -107,7 +107,7 @@ let check err severity_cover suppressions =
   in
   let result = match Errors.kind_of_error err with
     | Errors.RecursionLimitError -> Err
-    | _ -> if ((is_in_dependency || is_whitelisted) && (Option.is_some lint_kind))
+    | _ -> if (is_in_dependency && (Option.is_some lint_kind)) || is_whitelisted
       then Off
       else result
   in (result, consumed, { suppressions; unused; unused_lint_suppressions; })
