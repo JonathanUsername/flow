@@ -103,7 +103,14 @@ let check err severity_cover suppressions =
         String_utils.is_substring "/node_modules/" (Loc.string_of_filename filename))
     | [] -> false
   in
-  let result = if is_in_dependency && (Option.is_some lint_kind)
+  let is_whitelisted = match Errors.infos_of_error err with
+    | (primary_loc,_)::_ ->
+      Option.value_map (Loc.source primary_loc) ~default:false ~f:(fun filename ->
+        Whitelisting.filename_in_whitelist filename
+      )
+    | [] -> false
+  in
+  let result = if (is_in_dependency || is_whitelisted) && (Option.is_some lint_kind)
     then Off
     else result
   in (result, consumed, { suppressions; unused; unused_lint_suppressions; })
