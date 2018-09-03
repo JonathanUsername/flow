@@ -156,8 +156,6 @@ let bake builder =
 (* Supports O(log(n)) queries to get the value associated with a loc. *)
 type 'a t = 'a SpanMap.t
 
-let empty = SpanMap.empty
-
 let file_cover source value = new_builder source value |> bake
 
 (* Gets the value associated with a certain location in the code. To resolve
@@ -168,20 +166,11 @@ let find loc cover =
   try SpanMap.find_unsafe first_char cover
   with Not_found -> raise (Uncovered (Loc.to_string ~include_source:true loc))
 
-let union a b = SpanMap.union a b
-
-let union_all cover_set =
-  Utils_js.FilenameMap.fold
-    (fun _key -> union)
-    cover_set
-    empty
-
-
 (* `severity LintSettings.t`-specific functions *)
 
 type lint_severity_cover = Severity.severity LintSettings.t t
 
-let default_file_cover source = file_cover source LintSettings.default_severities
+let default_file_cover source = file_cover source LintSettings.empty_severities
 
 let get_severity lint_kind loc severity_cover =
 find loc severity_cover |> LintSettings.get_value lint_kind

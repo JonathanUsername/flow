@@ -2,13 +2,12 @@
  * Copyright (c) 2015, Facebook, Inc.
  * All rights reserved.
  *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the "hack" directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the "hack" directory of this source tree.
  *
  *)
 
-open Core
+open Hh_core
 
 type kind =
   | Function
@@ -39,8 +38,8 @@ and 'a t = {
   name : string;
   full_name : string;
   id : string option;
-  pos : 'a Pos.pos;
-  span : 'a Pos.pos;
+  pos : 'a Pos.pos; (* covers the span of just the identifier *)
+  span : 'a Pos.pos; (* covers the span of the entire construct, including children *)
   modifiers : modifier list;
   children : 'a t list option;
   params : 'a t list option;
@@ -48,16 +47,20 @@ and 'a t = {
 }
 
 let rec to_absolute x = {
-  kind = x.kind;
-  name = x.name;
-  full_name = x.full_name;
-  id = x.id;
+  x with
   pos = Pos.to_absolute x.pos;
   span = Pos.to_absolute x.span;
-  modifiers = x.modifiers;
   children = Option.map x.children (fun x -> List.map x to_absolute);
   params = Option.map x.params (fun x -> List.map x to_absolute);
   docblock = x.docblock;
+}
+
+let rec to_relative x = {
+  x with
+  pos = Pos.to_relative x.pos;
+  span = Pos.to_relative x.span;
+  children = Option.map x.children (fun x -> List.map x to_relative);
+  params = Option.map x.params (fun x -> List.map x to_relative);
 }
 
 let string_of_kind = function

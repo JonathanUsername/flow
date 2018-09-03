@@ -32,6 +32,8 @@ type parse_options = {
   esproposal_class_static_fields: bool;
   esproposal_decorators: bool;
   esproposal_export_star_as: bool;
+  esproposal_optional_chaining: bool;
+  esproposal_nullish_coalescing: bool;
   types: bool;
   use_strict: bool;
 }
@@ -58,7 +60,7 @@ val last_loc : env -> Loc.t option
 val last_token : env -> Token.t option
 val in_export : env -> bool
 val labels : env -> SSet.t
-val comments : env -> Loc.t Ast.Comment.t list
+val comments : env -> Loc.t Flow_ast.Comment.t list
 val in_loop : env -> bool
 val in_switch : env -> bool
 val in_formal_parameters : env -> bool
@@ -85,7 +87,6 @@ val error_on_decorators : env -> (Loc.t * 'a) list -> unit
 val strict_error : env -> Parse_error.t -> unit
 val strict_error_at : env -> Loc.t * Parse_error.t -> unit
 val function_as_statement_error_at : env -> Loc.t -> unit
-val comment_list : env -> Loc.t Ast.Comment.t list -> unit
 val error_list : env -> (Loc.t * Parse_error.t) list -> unit
 val record_export: env -> Loc.t * string -> unit
 val enter_class : env -> unit
@@ -126,17 +127,25 @@ val is_reserved_type : string -> bool
 val token_is_restricted : Token.t -> bool
 
 module Peek : sig
-  val token : ?i:int -> env -> Token.t
-  val loc : ?i:int -> env -> Loc.t
-  val errors : ?i:int -> env -> (Loc.t * Parse_error.t) list
-  val comments : ?i:int -> env -> Loc.t Ast.Comment.t list
+  val token : env -> Token.t
+  val loc : env -> Loc.t
+  val errors : env -> (Loc.t * Parse_error.t) list
+  val comments : env -> Loc.t Flow_ast.Comment.t list
   val is_line_terminator : env -> bool
   val is_implicit_semicolon : env -> bool
-  val is_identifier : ?i:int -> env -> bool
-  val is_type_identifier : ?i:int -> env -> bool
-  val is_literal_property_name : ?i:int -> env -> bool
-  val is_function : ?i:int -> env -> bool
-  val is_class : ?i:int -> env -> bool
+  val is_identifier : env -> bool
+  val is_type_identifier : env -> bool
+  val is_identifier_name : env -> bool
+  val is_function : env -> bool
+  val is_class : env -> bool
+
+  val ith_token : i:int -> env -> Token.t
+  val ith_loc : i:int -> env -> Loc.t
+  val ith_errors : i:int -> env -> (Loc.t * Parse_error.t) list
+  val ith_comments : i:int -> env -> Loc.t Flow_ast.Comment.t list
+  val ith_is_identifier : i:int -> env -> bool
+  val ith_is_identifier_name : i:int -> env -> bool
+  val ith_is_type_identifier : i:int -> env -> bool
 end
 
 module Eat : sig
@@ -161,4 +170,5 @@ module Try : sig
   exception Rollback
 
   val to_parse: env -> (env -> 'a) -> 'a parse_result
+  val or_else: env -> fallback:'a -> (env -> 'a) -> 'a
 end

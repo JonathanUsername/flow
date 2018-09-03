@@ -1,7 +1,4 @@
 #!/bin/bash
-. ../assert.sh
-FLOW=$1
-
 # coverage of declare module
 assert_ok "$FLOW" coverage --color declare_module.js
 
@@ -21,4 +18,4 @@ assert_ok "$FLOW" coverage --all no_pragma.js
 assert_ok "$FLOW" coverage --respect-pragma no_pragma.js
 
 # --all wins (and assumes @flow weak)
-assert_ok "$FLOW" coverage --respect-pragma --all no_pragma.js 2>&1
+assert_ok "$FLOW" coverage --respect-pragma --all no_pragma.js

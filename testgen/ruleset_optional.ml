@@ -5,12 +5,11 @@
  * LICENSE file in the root directory of this source tree.
  *)
 
-module S = Ast.Statement;;
-module E = Ast.Expression;;
-module T = Ast.Type;;
-module P = Ast.Pattern;;
+module S = Flow_ast.Statement;;
+module E = Flow_ast.Expression;;
+module T = Flow_ast.Type;;
+module P = Flow_ast.Pattern;;
 module Utils = Flowtestgen_utils;;
-module FRandom = Utils.FRandom;;
 
 (* ESSENTIAL: Syntax type and related functions *)
 module Syntax = Syntax_base;;
@@ -23,8 +22,8 @@ class ruleset_optional = object(self)
 
   method! weak_assert b = self#backtrack_on_false b
 
-  method! is_subtype_obj (o1 : Loc.t T.Object.t) (o2 : Loc.t T.Object.t) =
-    let get_prop_set (o : Loc.t T.Object.t) =
+  method! is_subtype_obj (o1 : (Loc.t, Loc.t) T.Object.t) (o2 : (Loc.t, Loc.t) T.Object.t) =
+    let get_prop_set (o : (Loc.t, Loc.t) T.Object.t) =
       let tbl = Hashtbl.create 1000 in
 
       (* hash table for storing optional properties *)
@@ -35,6 +34,7 @@ class ruleset_optional = object(self)
                                    value = Init (_, t);
                                    optional = o;
                                    static = _;
+                                   proto = _;
                                    _method = _;
                                    variance = _;}) ->
             if o then Hashtbl.add opt_tbl name t
@@ -177,5 +177,5 @@ end
 class ruleset_random_optional = object
   inherit ruleset_optional
   method! weak_assert b =
-    if (not b) && ((FRandom.rint 3) > 0) then raise Engine.Backtrack
+    if (not b) && ((Random.int 3) > 0) then raise Engine.Backtrack
 end

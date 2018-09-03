@@ -24,25 +24,28 @@ let spec = {
       CommandUtils.exe_name;
   args = CommandSpec.ArgSpec.(
     empty
-    |> server_flags
+    |> base_flags
+    |> connect_flags
     |> root_flag
     |> from_flag
     |> anon "files" (required (list_of string))
-        ~doc:"File(s) to port"
   )
 }
 
-let main option_values root from files () =
+let main base_flags option_values root from files () =
   FlowEventLogger.set_from from;
-  let root = guess_root (
+  let flowconfig_name = base_flags.Base_flags.flowconfig_name in
+  let root = guess_root flowconfig_name (
     match root with
     | Some root -> Some root
     | None -> Some (List.hd files)
   ) in
-  let ic, oc = connect option_values root in
   let files = List.map expand_path files in
-  send_command oc (ServerProt.PORT files);
-  let patch_map: ((string, exn) result) SMap.t = Timeout.input_value ic in
+  let request = ServerProt.Request.PORT files in
+  let patch_map = match connect_and_make_request flowconfig_name option_values root request with
+  | ServerProt.Response.PORT patch_map -> patch_map
+  | response -> failwith_bad_response ~request ~response
+  in
   SMap.iter (fun file patches_or_err ->
     match patches_or_err with
     | Ok patches ->

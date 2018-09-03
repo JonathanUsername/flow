@@ -33,47 +33,55 @@ let error ln msg = multi_error [(ln, msg)]
 
 module Opts = struct
   type t = {
+    all: bool;
     emoji: bool;
+    enable_cancelable_rechecks: bool;
     enable_const_params: bool;
-    enable_unsafe_getters_and_setters: bool;
-    enforce_strict_type_args: bool;
     enforce_strict_call_arity: bool;
+    enforce_well_formed_exports: bool;
     esproposal_class_instance_fields: Options.esproposal_feature_mode;
     esproposal_class_static_fields: Options.esproposal_feature_mode;
     esproposal_decorators: Options.esproposal_feature_mode;
     esproposal_export_star_as: Options.esproposal_feature_mode;
+    esproposal_nullish_coalescing: Options.esproposal_feature_mode;
+    esproposal_optional_chaining: Options.esproposal_feature_mode;
     facebook_fbt: string option;
+    file_watcher: Options.file_watcher option;
     haste_name_reducers: (Str.regexp * string) list;
     haste_paths_blacklist: string list;
     haste_paths_whitelist: string list;
     haste_use_name_reducers: bool;
     ignore_non_literal_requires: bool;
     include_warnings: bool;
-    module_system: Options.module_system;
-    module_name_mappers: (Str.regexp * string) list;
-    node_resolver_dirnames: string list;
-    munge_underscores: bool;
-    module_file_exts: SSet.t;
-    module_resource_exts: SSet.t;
-    modules_are_use_strict: bool;
-    suppress_comments: Str.regexp list;
-    suppress_types: SSet.t;
-    traces: int;
-    all: bool;
-    weak: bool;
     log_file: Path.t option;
     max_header_tokens: int;
+    max_literal_length: int;
     max_workers: int;
+    merge_timeout: int option;
+    module_file_exts: SSet.t;
+    module_name_mappers: (Str.regexp * string) list;
+    module_resolver: Path.t option;
+    module_resource_exts: SSet.t;
+    module_system: Options.module_system;
+    modules_are_use_strict: bool;
+    munge_underscores: bool;
+    name: string option;
     no_flowlib: bool;
-    temp_dir: string;
-    shm_global_size: int;
-    shm_heap_size: int;
-    shm_dirs: string list;
-    shm_min_avail: int;
+    node_resolver_dirnames: string list;
+    saved_state_fetcher: Options.saved_state_fetcher;
     shm_dep_table_pow: int;
+    shm_dirs: string list;
+    shm_global_size: int;
     shm_hash_table_pow: int;
+    shm_heap_size: int;
     shm_log_level: int;
+    shm_min_avail: int;
+    suppress_comments: Str.regexp list;
+    suppress_types: SSet.t;
+    temp_dir: string;
+    traces: int;
     version: string option;
+    weak: bool;
   }
 
   type initializer_ =
@@ -121,6 +129,7 @@ module Opts = struct
     |> SSet.add ".js"
     |> SSet.add ".jsx"
     |> SSet.add ".json"
+    |> SSet.add ".mjs"
 
   let module_resource_exts = SSet.empty
     |> SSet.add ".css"
@@ -136,47 +145,55 @@ module Opts = struct
     |> SSet.add ".webm"
 
   let default_options = {
+    all = false;
     emoji = false;
+    enable_cancelable_rechecks = false;
     enable_const_params = false;
-    enable_unsafe_getters_and_setters = false;
-    enforce_strict_type_args = true;
     enforce_strict_call_arity = true;
+    enforce_well_formed_exports = false;
     esproposal_class_instance_fields = Options.ESPROPOSAL_ENABLE;
     esproposal_class_static_fields = Options.ESPROPOSAL_ENABLE;
     esproposal_decorators = Options.ESPROPOSAL_WARN;
     esproposal_export_star_as = Options.ESPROPOSAL_WARN;
+    esproposal_nullish_coalescing = Options.ESPROPOSAL_WARN;
+    esproposal_optional_chaining = Options.ESPROPOSAL_WARN;
     facebook_fbt = None;
+    file_watcher = None;
     haste_name_reducers = [(Str.regexp "^\\(.*/\\)?\\([a-zA-Z0-9$_.-]+\\)\\.js\\(\\.flow\\)?$", "\\2")];
     haste_paths_blacklist = ["\\(.*\\)?/node_modules/.*"];
     haste_paths_whitelist = ["<PROJECT_ROOT>/.*"];
     haste_use_name_reducers = false;
     ignore_non_literal_requires = false;
     include_warnings = false;
-    module_system = Options.Node;
-    module_name_mappers = [];
-    node_resolver_dirnames = ["node_modules"];
-    munge_underscores = false;
-    module_file_exts;
-    module_resource_exts;
-    modules_are_use_strict = false;
-    suppress_comments = [Str.regexp "\\(.\\|\n\\)*\\$FlowFixMe"];
-    suppress_types = SSet.empty |> SSet.add "$FlowFixMe";
-    traces = 0;
-    all = false;
-    weak = false;
     log_file = None;
     max_header_tokens = 10;
+    max_literal_length = 100;
     max_workers = Sys_utils.nbr_procs;
+    merge_timeout = Some 100;
+    module_file_exts;
+    module_name_mappers = [];
+    module_resolver = None;
+    module_resource_exts;
+    module_system = Options.Node;
+    modules_are_use_strict = false;
+    munge_underscores = false;
+    name = None;
     no_flowlib = false;
-    temp_dir = default_temp_dir;
-    shm_global_size = 1024 * 1024 * 1024; (* 1 gig *)
-    shm_heap_size = 1024 * 1024 * 1024 * 25; (* 25 gigs *)
-    shm_dirs = default_shm_dirs;
-    shm_min_avail = default_shm_min_avail;
+    node_resolver_dirnames = ["node_modules"];
+    saved_state_fetcher = Options.Dummy_fetcher;
     shm_dep_table_pow = 17;
+    shm_dirs = default_shm_dirs;
+    shm_global_size = 1024 * 1024 * 1024; (* 1 gig *)
     shm_hash_table_pow = 19;
+    shm_heap_size = 1024 * 1024 * 1024 * 25; (* 25 gigs *)
     shm_log_level = 0;
+    shm_min_avail = default_shm_min_avail;
+    suppress_comments = [Str.regexp "\\(.\\|\n\\)*\\$FlowFixMe"];
+    suppress_types = SSet.empty |> SSet.add "$FlowFixMe";
+    temp_dir = default_temp_dir;
+    traces = 0;
     version = None;
+    weak = false;
   }
 
   let parse =
@@ -300,8 +317,12 @@ module Opts = struct
 end
 
 type config = {
-  (* file blacklist *)
+  (* completely ignored files (both module resolving and typing) *)
   ignores: string list;
+  (* files that should be treated as untyped *)
+  untyped: string list;
+  (* files that should be treated as declarations *)
+  declarations: string list;
   (* non-root include paths *)
   includes: string list;
   (* library paths. no wildcards *)
@@ -324,6 +345,12 @@ end = struct
 
   let ignores o ignores =
     List.iter (fun ex -> (fprintf o "%s\n" ex)) ignores
+
+  let untyped o untyped =
+    List.iter (fun ex -> (fprintf o "%s\n" ex)) untyped
+
+  let declarations o declarations =
+    List.iter (fun ex -> (fprintf o "%s\n" ex)) declarations
 
   let includes o includes =
     List.iter (fun inc -> (fprintf o "%s\n" inc)) includes
@@ -358,7 +385,7 @@ end = struct
     let lint_severities = config.lint_severities in
     let lint_default = LintSettings.get_default lint_severities in
     (* Don't print an 'all' setting if it matches the default setting. *)
-    if (lint_default <> LintSettings.get_default LintSettings.default_severities) then
+    if (lint_default <> LintSettings.get_default LintSettings.empty_severities) then
       fprintf o "all=%s\n" (string_of_severity lint_default);
     LintSettings.iter (fun kind (state, _) ->
         (fprintf o "%s=%s\n"
@@ -374,10 +401,19 @@ end = struct
          (string_of_kind kind)))
       strict_mode
 
+  let section_if_nonempty o header f = function
+    | [] -> ()
+    | xs ->
+      section_header o header;
+      f o xs;
+      fprintf o "\n"
+
   let config o config =
     section_header o "ignore";
     ignores o config.ignores;
     fprintf o "\n";
+    section_if_nonempty o "untyped" untyped config.untyped;
+    section_if_nonempty o "declarations" declarations config.declarations;
     section_header o "include";
     includes o config.includes;
     fprintf o "\n";
@@ -396,9 +432,11 @@ end
 
 let empty_config = {
   ignores = [];
+  untyped = [];
+  declarations = [];
   includes = [];
   libs = [];
-  lint_severities = LintSettings.default_severities;
+  lint_severities = LintSettings.empty_severities;
   strict_mode = StrictModeSettings.empty;
   options = Opts.default_options
 }
@@ -444,6 +482,14 @@ let parse_libs config lines =
 let parse_ignores config lines =
   let ignores = trim_lines lines in
   { config with ignores; }
+
+let parse_untyped config lines =
+  let untyped = trim_lines lines in
+  { config with untyped; }
+
+let parse_declarations config lines =
+  let declarations = trim_lines lines in
+  { config with declarations; }
 
 let parse_options config lines =
   let open Opts in
@@ -494,6 +540,24 @@ let parse_options config lines =
       });
     }
 
+    |> define_opt "esproposal.optional_chaining" {
+      initializer_ = USE_DEFAULT;
+      flags = [];
+      optparser = optparse_esproposal_feature_flag ~allow_enable:true;
+      setter = (fun opts v -> Ok {
+        opts with esproposal_optional_chaining = v;
+      });
+    }
+
+    |> define_opt "esproposal.nullish_coalescing" {
+      initializer_ = USE_DEFAULT;
+      flags = [];
+      optparser = optparse_esproposal_feature_flag ~allow_enable:true;
+      setter = (fun opts v -> Ok {
+        opts with esproposal_nullish_coalescing = v;
+      });
+    }
+
     |> define_opt "facebook.fbt" {
       initializer_ = USE_DEFAULT;
       flags = [];
@@ -503,12 +567,35 @@ let parse_options config lines =
       });
     }
 
+    |> define_opt "file_watcher" {
+      initializer_ = USE_DEFAULT;
+      flags = [];
+      optparser = optparse_enum [
+        "none", Options.NoFileWatcher;
+        "dfind", Options.DFind;
+        "watchman", Options.Watchman;
+      ];
+      setter = (fun opts v -> Ok {
+        opts with file_watcher = Some v;
+      });
+    }
+
     |> define_opt "include_warnings" {
       initializer_ = USE_DEFAULT;
       flags = [];
       optparser = optparse_boolean;
       setter = (fun opts v ->
         Ok {opts with include_warnings = v;}
+      );
+    }
+
+    |> define_opt "merge_timeout" {
+      initializer_ = USE_DEFAULT;
+      flags = [];
+      optparser = optparse_uint;
+      setter = (fun opts v ->
+        let merge_timeout = if v = 0 then None else Some v in
+        Ok {opts with merge_timeout}
       );
     }
 
@@ -638,6 +725,15 @@ let parse_options config lines =
       );
     }
 
+    |> define_opt "module.resolver" {
+      initializer_ = USE_DEFAULT;
+      flags = [];
+      optparser = optparse_filepath;
+      setter = (fun opts v -> Ok {
+        opts with module_resolver = Some v;
+      });
+    }
+
     |> define_opt "module.system" {
       initializer_ = USE_DEFAULT;
       flags = [];
@@ -677,6 +773,16 @@ let parse_options config lines =
       optparser = optparse_boolean;
       setter = (fun opts v ->
         Ok {opts with munge_underscores = v;}
+      );
+    }
+
+    |> define_opt "name" {
+      initializer_ = USE_DEFAULT;
+      flags = [];
+      optparser = optparse_string;
+      setter = (fun opts v ->
+        FlowEventLogger.set_root_name (Some v);
+        Ok {opts with name = Some v;}
       );
     }
 
@@ -743,6 +849,18 @@ let parse_options config lines =
       });
     }
 
+    |> define_opt "saved_state.fetcher" {
+      initializer_ = USE_DEFAULT;
+      flags = [];
+      optparser = optparse_enum [
+        ("none", Options.Dummy_fetcher);
+        ("local", Options.Local_fetcher);
+      ];
+      setter = (fun opts saved_state_fetcher -> Ok {
+        opts with saved_state_fetcher;
+      });
+    }
+
     |> define_opt "sharedmemory.dirs" {
       initializer_ = USE_DEFAULT;
       flags = [ALLOW_DUPLICATE];
@@ -797,12 +915,22 @@ let parse_options config lines =
       );
     }
 
-    |> define_opt "unsafe.enable_getters_and_setters" {
+    |> define_opt "max_literal_length" {
+      initializer_ = USE_DEFAULT;
+      flags = [];
+      optparser = optparse_uint;
+      setter = (fun opts v ->
+        Ok {opts with max_literal_length = v;}
+      );
+    }
+
+
+    |> define_opt "experimental.cancelable_rechecks" {
       initializer_ = USE_DEFAULT;
       flags = [];
       optparser = optparse_boolean;
       setter = (fun opts v ->
-        Ok {opts with enable_unsafe_getters_and_setters = v;}
+        Ok {opts with enable_cancelable_rechecks = v;}
       );
     }
 
@@ -815,21 +943,21 @@ let parse_options config lines =
       );
     }
 
-    |> define_opt "experimental.strict_type_args" {
-      initializer_ = USE_DEFAULT;
-      flags = [];
-      optparser = optparse_boolean;
-      setter = (fun opts v ->
-        Ok {opts with enforce_strict_type_args = v;}
-      );
-    }
-
     |> define_opt "experimental.strict_call_arity" {
       initializer_ = USE_DEFAULT;
       flags = [];
       optparser = optparse_boolean;
       setter = (fun opts v ->
         Ok {opts with enforce_strict_call_arity = v;}
+      );
+    }
+
+    |> define_opt "experimental.well_formed_exports" {
+      initializer_ = USE_DEFAULT;
+      flags = [];
+      optparser = optparse_boolean;
+      setter = (fun opts v ->
+        Ok {opts with enforce_well_formed_exports = v;}
       );
     }
 
@@ -866,7 +994,7 @@ let parse_version config lines =
   | _ -> config
 
 let parse_lints config lines =
-  match lines |> trim_labeled_lines |> LintSettings.of_lines LintSettings.default_severities with
+  match lines |> trim_labeled_lines |> LintSettings.of_lines config.lint_severities with
   | Ok lint_severities -> {config with lint_severities}
   | Error (ln, msg) -> error ln msg
 
@@ -884,8 +1012,10 @@ let parse_section config ((section_ln, section), lines) =
   | "ignore", _ -> parse_ignores config lines
   | "libs", _ -> parse_libs config lines
   | "lints", _ -> parse_lints config lines
+  | "declarations", _ -> parse_declarations config lines
   | "strict", _ -> parse_strict config lines
   | "options", _ -> parse_options config lines
+  | "untyped", _ -> parse_untyped config lines
   | "version", _ -> parse_version config lines
   | _ -> error section_ln (spf "Unsupported config section: \"%s\"" section)
 
@@ -904,20 +1034,40 @@ let is_not_comment =
       (fun (regexp) -> Str.string_match regexp line 0)
       comment_regexps)
 
+let default_lint_severities = [
+  Lints.DeprecatedCallSyntax, (Severity.Err, None);
+]
+
 let read filename =
-  let lines = Sys_utils.cat_no_fail filename
+  let contents = Sys_utils.cat_no_fail filename in
+  let hash =
+    let xx_state = Xx.init () in
+    Xx.update xx_state contents;
+    Xx.digest xx_state
+  in
+  let lines = contents
     |> Sys_utils.split_lines
     |> List.mapi (fun i line -> (i+1, String.trim line))
     |> List.filter is_not_comment in
-  parse empty_config lines
+  let config = {
+    empty_config with
+    lint_severities = List.fold_left (fun acc (lint, severity) ->
+      LintSettings.set_value lint severity acc
+    ) empty_config.lint_severities default_lint_severities
+  } in
+  parse config lines, hash
 
-let init ~ignores ~includes ~libs ~options ~lints =
+let init ~ignores ~untyped ~declarations ~includes ~libs ~options ~lints =
   let ignores_lines = List.map (fun s -> (1, s)) ignores in
+  let untyped_lines = List.map (fun s -> (1, s)) untyped in
+  let declarations_lines = List.map (fun s -> (1, s)) declarations in
   let includes_lines = List.map (fun s -> (1, s)) includes in
   let options_lines = List.map (fun s -> (1, s)) options in
   let lib_lines = List.map (fun s -> (1, s)) libs in
   let lint_lines = List.map (fun s -> (1, s)) lints in
   let config = parse_ignores empty_config ignores_lines in
+  let config = parse_untyped config untyped_lines in
+  let config = parse_declarations config declarations_lines in
   let config = parse_includes config includes_lines in
   let config = parse_options config options_lines in
   let config = parse_libs config lib_lines in
@@ -926,26 +1076,36 @@ let init ~ignores ~includes ~libs ~options ~lints =
 
 let write config oc = Pp.config oc config
 
-(* We should restart every time the config changes, so it's cool to cache it *)
+(* We should restart every time the config changes, so it's generally cool to cache it *)
 let cache = ref None
 
-let get filename =
+let get_from_cache ?(allow_cache=true) filename =
   match !cache with
-  | None ->
-      let config = read filename in
-      cache := Some (filename, config);
-      config
-  | Some (cached_filename, config) ->
+  | Some (cached_filename, _, _ as cached_data) when allow_cache ->
       assert (filename = cached_filename);
-      config
+      cached_data
+  | _ ->
+      let config, hash = read filename in
+      let cached_data = filename, config, hash in
+      cache := Some cached_data;
+      filename, config, hash
 
-let restore (filename, config) = cache := Some (filename, config)
+let get ?allow_cache filename =
+  let (_, config, _) = get_from_cache ?allow_cache filename in
+  config
 
+let get_hash ?allow_cache filename =
+  let (_, _, hash) = get_from_cache ?allow_cache filename in
+  hash
 
 (* Accessors *)
 
-(* file blacklist *)
+(* completely ignored files (both module resolving and typing) *)
 let ignores config = config.ignores
+(* files that should be treated as untyped *)
+let untyped config = config.untyped
+(* files that should be treated as declarations *)
+let declarations config = config.declarations
 (* non-root include paths *)
 let includes config = config.includes
 (* library paths. no wildcards *)
@@ -954,14 +1114,18 @@ let libs config = config.libs
 (* options *)
 let all c = c.options.Opts.all
 let emoji c = c.options.Opts.emoji
+let max_literal_length c = c.options.Opts.max_literal_length
+let enable_cancelable_rechecks c = c.options.Opts.enable_cancelable_rechecks
 let enable_const_params c = c.options.Opts.enable_const_params
-let enable_unsafe_getters_and_setters c = c.options.Opts.enable_unsafe_getters_and_setters
-let enforce_strict_type_args c = c.options.Opts.enforce_strict_type_args
 let enforce_strict_call_arity c = c.options.Opts.enforce_strict_call_arity
+let enforce_well_formed_exports c = c.options.Opts.enforce_well_formed_exports
 let esproposal_class_instance_fields c = c.options.Opts.esproposal_class_instance_fields
 let esproposal_class_static_fields c = c.options.Opts.esproposal_class_static_fields
 let esproposal_decorators c = c.options.Opts.esproposal_decorators
 let esproposal_export_star_as c = c.options.Opts.esproposal_export_star_as
+let esproposal_optional_chaining c = c.options.Opts.esproposal_optional_chaining
+let esproposal_nullish_coalescing c = c.options.Opts.esproposal_nullish_coalescing
+let file_watcher c = c.options.Opts.file_watcher
 let facebook_fbt c = c.options.Opts.facebook_fbt
 let haste_name_reducers c = c.options.Opts.haste_name_reducers
 let haste_paths_blacklist c = c.options.Opts.haste_paths_blacklist
@@ -972,14 +1136,18 @@ let include_warnings c = c.options.Opts.include_warnings
 let log_file c = c.options.Opts.log_file
 let max_header_tokens c = c.options.Opts.max_header_tokens
 let max_workers c = c.options.Opts.max_workers
+let merge_timeout c = c.options.Opts.merge_timeout
 let module_file_exts c = c.options.Opts.module_file_exts
 let module_name_mappers c = c.options.Opts.module_name_mappers
+let module_resolver c = c.options.Opts.module_resolver
 let module_resource_exts c = c.options.Opts.module_resource_exts
 let module_system c = c.options.Opts.module_system
 let modules_are_use_strict c = c.options.Opts.modules_are_use_strict
 let munge_underscores c = c.options.Opts.munge_underscores
+let name c = c.options.Opts.name
 let no_flowlib c = c.options.Opts.no_flowlib
 let node_resolver_dirnames c = c.options.Opts.node_resolver_dirnames
+let saved_state_fetcher c = c.options.Opts.saved_state_fetcher
 let shm_dep_table_pow c = c.options.Opts.shm_dep_table_pow
 let shm_dirs c = c.options.Opts.shm_dirs
 let shm_global_size c = c.options.Opts.shm_global_size

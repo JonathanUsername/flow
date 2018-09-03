@@ -5,17 +5,18 @@
  * LICENSE file in the root directory of this source tree.
  *)
 
-module S = Ast.Statement;;
-module E = Ast.Expression;;
-module T = Ast.Type;;
-module P = Ast.Pattern;;
+module Ast = Flow_ast
+
+module S = Flow_ast.Statement;;
+module E = Flow_ast.Expression;;
+module T = Flow_ast.Type;;
+module P = Flow_ast.Pattern;;
 module Utils = Flowtestgen_utils;;
-module FRandom = Utils.FRandom;;
 
 (* ESSENTIAL: Syntax type and related functions *)
 type t =
-  | Expr of Loc.t E.t'
-  | Stmt of Loc.t S.t'
+  | Expr of (Loc.t, Loc.t) E.t'
+  | Stmt of (Loc.t, Loc.t) S.t'
   | Empty
 
 let str_of_syntax (s : t) : string =
@@ -25,7 +26,7 @@ let str_of_syntax (s : t) : string =
   | Empty -> ""
 
 (* Make a literal expression.*)
-let rec mk_literal_expr (t : Loc.t T.t') : Loc.t E.t' =
+let rec mk_literal_expr (t : (Loc.t, Loc.t) T.t') : (Loc.t, Loc.t) E.t' =
   match t with
   | T.Number ->
     E.Literal (Ast.Literal.({value = Number 1.1; raw = "1.1"}))
@@ -41,12 +42,12 @@ let rec mk_literal_expr (t : Loc.t T.t') : Loc.t E.t' =
     E.Array.(E.Array {elements})
   | T.Object obj_t -> mk_obj_literal_expr obj_t
   | T.StringLiteral lit ->
-    let value = T.StringLiteral.(lit.value) in
-    let raw = T.StringLiteral.(lit.raw) in
+    let value = Ast.StringLiteral.(lit.value) in
+    let raw = Ast.StringLiteral.(lit.raw) in
     E.Literal (Ast.Literal.({value = String value; raw}))
   | T.NumberLiteral lit ->
-    let value = T.NumberLiteral.(lit.value) in
-    let raw = T.NumberLiteral.(lit.raw) in
+    let value = Ast.NumberLiteral.(lit.value) in
+    let raw = Ast.NumberLiteral.(lit.raw) in
     E.Literal (Ast.Literal.({value = Number value; raw}))
   | T.BooleanLiteral value ->
     let raw = if value then "true" else "false" in
@@ -61,7 +62,7 @@ let rec mk_literal_expr (t : Loc.t T.t') : Loc.t E.t' =
     E.Literal (Ast.Literal.({value = Null; raw = "null"}))
 
 (* Make an object literal based on its type *)
-and mk_obj_literal_expr (t : Loc.t T.Object.t) : Loc.t E.t' =
+and mk_obj_literal_expr (t : (Loc.t, Loc.t) T.Object.t) : (Loc.t, Loc.t) E.t' =
   let prop_init_list =
     List.map (fun p ->
         let open T.Object.Property in
@@ -70,37 +71,41 @@ and mk_obj_literal_expr (t : Loc.t T.Object.t) : Loc.t E.t' =
                                  value = Init (_, ptype);
                                  optional = o;
                                  static = _;
+                                 proto = _;
                                  _method = _;
                                  variance = _}) -> (k, o, mk_literal_expr ptype)
         | _ -> failwith "Unsupported property") T.Object.(t.properties)
     (* Randomly remove some optional properties *)
-    (* |> List.filter (fun (_, o, _) -> (not o) || FRandom.rbool ()) *)
+    (* |> List.filter (fun (_, o, _) -> (not o) || Random.bool ()) *)
     |> List.map (fun (key, _, expr_t) ->
-       let open E.Object.Property in
-       E.Object.Property (Loc.none, {key;
-                                     value = Init (Loc.none, expr_t);
-                                     _method = false;
-                                     shorthand = false})) in
+        let open E.Object.Property in
+        E.Object.Property (Loc.none, Init {
+          key;
+          value = Loc.none, expr_t;
+          shorthand = false
+        })
+       )
+  in
   E.Object.(E.Object {properties = prop_init_list})
 
 (* Check the expression is of the given type *)
-let mk_runtime_check (expr : Loc.t E.t') (etype : Loc.t T.t') : t =
+let mk_runtime_check (expr : (Loc.t, Loc.t) E.t') (etype : (Loc.t, Loc.t) T.t') : t =
   (* Make a variable decalration first *)
   let callee = E.Identifier (Loc.none, "assert_type") in
   let arguments =
     [E.Expression (Loc.none, expr);
      E.Expression (Loc.none, (mk_literal_expr etype))] in
   let call = let open E.Call in
-    E.Call {callee = (Loc.none, callee); arguments} in
+    E.Call {callee = (Loc.none, callee); targs = None; arguments} in
   Stmt (S.Expression.(S.Expression {expression = (Loc.none, call);
                                            directive = None}))
 
 (* Check the expression is of the given type *)
-let mk_check_opt_prop (expr : Loc.t E.t') (etype : Loc.t T.t') : t =
+let mk_check_opt_prop (expr : (Loc.t, Loc.t) E.t') (etype : (Loc.t, Loc.t) T.t') : t =
   (* Make a variable decalration first *)
   let callee = E.Identifier (Loc.none, "check_opt_prop") in
 
-  let rec get_obj (read : Loc.t E.t') (acc : Loc.t E.t' list) =
+  let rec get_obj (read : (Loc.t, Loc.t) E.t') (acc : (Loc.t, Loc.t) E.t' list) =
     let open E.Member in
     match read with
     | E.Member {_object = (_, obj);
@@ -119,24 +124,24 @@ let mk_check_opt_prop (expr : Loc.t E.t') (etype : Loc.t T.t') : t =
      E.Expression (Loc.none, expr);
      E.Expression (Loc.none, (mk_literal_expr etype))] in
   let call = let open E.Call in
-    E.Call {callee = (Loc.none, callee); arguments} in
+    E.Call {callee = (Loc.none, callee); targs = None; arguments} in
   Stmt (S.Expression.(S.Expression {expression = (Loc.none, call);
                                     directive = None}))
 
 (* ESSENTIAL: functions for making syntax *)
-let mk_expr_stmt (expr : Loc.t E.t') : Loc.t S.t' =
+let mk_expr_stmt (expr : (Loc.t, Loc.t) E.t') : (Loc.t, Loc.t) S.t' =
   S.Expression.(S.Expression {expression = (Loc.none, expr);
                               directive = None})
 
-let mk_ret_stmt (expr : Loc.t E.t') : t =
+let mk_ret_stmt (expr : (Loc.t, Loc.t) E.t') : t =
   Stmt (S.Return.(S.Return {argument = Some (Loc.none, expr)}))
 
 let mk_func_def
     (fname : string)
     (pname : string)
-    (ptype : Loc.t T.t')
+    (ptype : (Loc.t, Loc.t) T.t')
     (body : t list)
-    (rtype : Loc.t T.t') : t =
+    (rtype : (Loc.t, Loc.t) T.t') : t =
 
   (* Add a runtime check for the parameter *)
   let body = body @ (match ptype with
@@ -153,7 +158,7 @@ let mk_func_def
 
   let param = let open P.Identifier in
     (Loc.none, P.Identifier {name = (Loc.none, pname);
-                             typeAnnotation = Some (Loc.none, (Loc.none, ptype));
+                             annot = Some (Loc.none, (Loc.none, ptype));
                              optional = false}) in
 
   let func = let open Ast.Function in
@@ -164,15 +169,16 @@ let mk_func_def
      generator = false;
      predicate = None;
      expression = false;
-     returnType = Some (Loc.none, (Loc.none, rtype));
-     typeParameters = None} in
+     return = Some (Loc.none, (Loc.none, rtype));
+     tparams = None} in
   Stmt (S.FunctionDeclaration func)
 
-let mk_func_call (fid : Loc.t E.t') (param : Loc.t E.t') : t =
+let mk_func_call (fid : (Loc.t, Loc.t) E.t') (param : (Loc.t, Loc.t) E.t') : t =
   Expr (E.Call.(E.Call {callee = (Loc.none, fid);
+                        targs = None;
                         arguments = [E.Expression (Loc.none, param)]}))
 
-let mk_literal (t : Loc.t T.t') : t = match t with
+let mk_literal (t : (Loc.t, Loc.t) T.t') : t = match t with
   | T.Number ->
     let lit = Ast.Literal.({value = Number 1.1; raw = "1.1"}) in
     Expr (E.Literal lit)
@@ -195,7 +201,7 @@ let mk_prop_read
 let mk_prop_write
     (oname : string)
     (pname : string)
-    (expr : Loc.t E.t') : t =
+    (expr : (Loc.t, Loc.t) E.t') : t =
   let read = match mk_prop_read oname pname with
     | Expr e -> e
     | _ -> failwith "This has to be an expression" in
@@ -208,7 +214,7 @@ let mk_prop_write
                   right = (Loc.none, right)} in
   Stmt (mk_expr_stmt assign)
 
-let mk_vardecl ?etype (vname : string) (expr : Loc.t E.t') : t =
+let mk_vardecl ?etype (vname : string) (expr : (Loc.t, Loc.t) E.t') : t =
   (* Make an identifier *)
   let t = match etype with
     | None -> None
@@ -217,7 +223,7 @@ let mk_vardecl ?etype (vname : string) (expr : Loc.t E.t') : t =
   let id = let open P.Identifier in
     (Loc.none, P.Identifier
        { name = (Loc.none, vname);
-         typeAnnotation = t;
+         annot = t;
          optional = false}) in
 
   (* get the expression and its dependencies *)
@@ -231,15 +237,17 @@ let mk_vardecl ?etype (vname : string) (expr : Loc.t E.t') : t =
 
   Stmt (S.VariableDeclaration var_decl)
 
-let mk_obj_lit (plist : (string * (Loc.t E.t' * Loc.t T.t')) list) : t =
+let mk_obj_lit (plist : (string * ((Loc.t, Loc.t) E.t' * (Loc.t, Loc.t) T.t')) list) : t =
   let props = List.map (fun p ->
       let pname = fst p in
       let expr = fst (snd p) in
       let open E.Object.Property in
-      E.Object.Property (Loc.none, {key = Identifier (Loc.none, pname);
-                                    value = Init (Loc.none, expr);
-                                    _method = false;
-                                    shorthand = false})) plist in
+      E.Object.Property (Loc.none, Init {
+        key = Identifier (Loc.none, pname);
+        value = Loc.none, expr;
+        shorthand = false
+      })
+  ) plist in
   let open E.Object in
   Expr (E.Object {properties = props})
 

@@ -10,15 +10,13 @@ type t
 val empty : t
 val is_empty : t -> bool
 val add : Loc.t -> t -> t
+val add_lint_suppressions : Utils_js.LocSet.t -> t -> t
 val union : t -> t -> t
-val set_unused_lint_suppressions : Loc.LocSet.t -> t -> t
-val check :
-  Errors.error -> ExactCover.lint_severity_cover -> t -> (Severity.severity * Loc.LocSet.t * t)
 val unused : t -> Loc.t list
 
 (* combines suppressions collated by filename into one collection *)
 val union_suppressions : t Utils_js.FilenameMap.t -> t
 
 val filter_suppressed_errors :
-  t -> ExactCover.lint_severity_cover -> Errors.ErrorSet.t ->
-  (Errors.ErrorSet.t * Errors.ErrorSet.t * (Errors.error * Loc.LocSet.t) list * t)
+  t -> ExactCover.lint_severity_cover Utils_js.FilenameMap.t -> Errors.ErrorSet.t -> unused:t ->
+  (Errors.ErrorSet.t * Errors.ErrorSet.t * (Errors.error * Utils_js.LocSet.t) list * t)

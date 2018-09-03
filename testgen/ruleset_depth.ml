@@ -5,12 +5,11 @@
  * LICENSE file in the root directory of this source tree.
  *)
 
-module S = Ast.Statement;;
-module E = Ast.Expression;;
-module T = Ast.Type;;
-module P = Ast.Pattern;;
+module S = Flow_ast.Statement;;
+module E = Flow_ast.Expression;;
+module T = Flow_ast.Type;;
+module P = Flow_ast.Pattern;;
 module Utils = Flowtestgen_utils;;
-module FRandom = Utils.FRandom;;
 
 (* ESSENTIAL: Syntax type and related functions *)
 module Syntax = Syntax_base;;
@@ -23,8 +22,8 @@ class ruleset_depth = object(self)
 
   method! weak_assert b = self#backtrack_on_false b
 
-  method! is_subtype_obj (o1 : Loc.t T.Object.t) (o2 : Loc.t T.Object.t) =
-    let get_prop_set (o : Loc.t T.Object.t) =
+  method! is_subtype_obj (o1 : (Loc.t, Loc.t) T.Object.t) (o2 : (Loc.t, Loc.t) T.Object.t) =
+    let get_prop_set (o : (Loc.t, Loc.t) T.Object.t) =
       let tbl = Hashtbl.create 1000 in
       let open T.Object.Property in
       List.iter (fun p -> match p with
@@ -32,6 +31,7 @@ class ruleset_depth = object(self)
                                    value = Init (_, t);
                                    optional = _;
                                    static = _;
+                                   proto = _;
                                    _method = _;
                                    variance = _;}) -> Hashtbl.add tbl name t
           | _ -> ()) T.Object.(o.properties);
@@ -49,15 +49,16 @@ class ruleset_depth = object(self)
 
   (* A helper funtions for wrapping an expression and a type
      into an object for mutation and expose type errors. *)
-  method wrap_in_obj (expr : Loc.t E.t') (etype : Loc.t T.t') : (Loc.t E.t' * Loc.t T.t') =
+  method wrap_in_obj (expr : (Loc.t, Loc.t) E.t') (etype : (Loc.t, Loc.t) T.t') : ((Loc.t, Loc.t) E.t' * (Loc.t, Loc.t) T.t') =
     let pname = "p_0" in
     let obj_expr =
       let prop =
         let open E.Object.Property in
-        E.Object.Property (Loc.none, {key = Identifier (Loc.none, pname);
-                    value = Init (Loc.none, expr);
-                    _method = false;
-                    shorthand = false}) in
+        E.Object.Property (Loc.none, Init {
+          key = Identifier (Loc.none, pname);
+          value = Loc.none, expr;
+          shorthand = false
+        }) in
       let properties = [prop] in
       E.Object.(E.Object {properties}) in
     let obj_type =
@@ -67,6 +68,7 @@ class ruleset_depth = object(self)
                                       value = Init (Loc.none, etype);
                                       optional = false;
                                       static = false;
+                                      proto = false;
                                       _method = false;
                                       variance = None;}) in
       T.Object.(T.Object {exact = false; properties = [prop_type]}) in
@@ -182,5 +184,5 @@ end
 class ruleset_random_depth = object
   inherit ruleset_depth
   method! weak_assert b =
-    if (not b) && ((FRandom.rint 3) > 0) then raise Engine.Backtrack
+    if (not b) && ((Random.int 3) > 0) then raise Engine.Backtrack
 end

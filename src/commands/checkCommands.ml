@@ -8,10 +8,8 @@
 open CommandUtils
 open Utils_js
 
-module Main = ServerFunctors.ServerMain (Server.FlowProgram)
-
 type printer =
-  | Json of { pretty: bool }
+  | Json of { pretty: bool; version: Errors.Json_output.json_version option }
   | Cli of Errors.Cli_output.error_flags
 
 (* helper - print errors. used in check-and-die runs *)
@@ -23,7 +21,7 @@ let print_errors ~printer ~profiling ~suppressed_errors options ~errors ~warning
   in
 
   match printer with
-  | Json { pretty } ->
+  | Json { pretty; version } ->
     let profiling =
       if options.Options.opt_profile
       then Some profiling
@@ -33,6 +31,7 @@ let print_errors ~printer ~profiling ~suppressed_errors options ~errors ~warning
       ~strip_root
       ~profiling
       ~pretty
+      ?version
       ~suppressed_errors
       ~errors
       ~warnings
@@ -49,6 +48,7 @@ let print_errors ~printer ~profiling ~suppressed_errors options ~errors ~warning
       ~strip_root
       ~errors
       ~warnings
+      ~lazy_msg:None
       ()
 
 module CheckCommand = struct
@@ -57,14 +57,16 @@ module CheckCommand = struct
     doc = "Does a full Flow check and prints the results";
     args = CommandSpec.ArgSpec.(
         empty
+        |> base_flags
         |> error_flags
         |> flag "--include-suppressed" no_arg
           ~doc:"Ignore any `suppress_comment` lines in .flowconfig"
         |> options_and_json_flags
+        |> json_version_flag
         |> shm_flags
         |> ignore_version_flag
         |> from_flag
-        |> anon "root" (optional string) ~doc:"Root directory"
+        |> anon "root" (optional string)
       );
     usage = Printf.sprintf
       "Usage: %s check [OPTION]... [ROOT]\n\n\
@@ -75,22 +77,23 @@ module CheckCommand = struct
   }
 
   let main
-      error_flags include_suppressed options_flags json pretty
+      base_flags error_flags include_suppressed options_flags json pretty json_version
       shm_flags ignore_version from path_opt
       () =
 
-    let root = CommandUtils.guess_root path_opt in
-    let flowconfig = FlowConfig.get (Server_files_js.config_file root) in
-    let options = make_options ~flowconfig ~lazy_mode:None ~root options_flags in
+    let flowconfig_name = base_flags.Base_flags.flowconfig_name in
+    let root = CommandUtils.guess_root flowconfig_name path_opt in
+    let flowconfig = FlowConfig.get (Server_files_js.config_file flowconfig_name root) in
+    let options = make_options ~flowconfig_name ~flowconfig ~lazy_mode:None ~root options_flags in
 
-    if Options.should_profile options
+    if Options.should_profile options && not Sys.win32
     then begin
       Flow_server_profile.init ();
       let rec sample_processor_info () =
         Flow_server_profile.processor_sample ();
         Timer.set_timer ~interval:1.0 ~callback:sample_processor_info |> ignore
       in
-      sample_processor_info ()
+      sample_processor_info ();
     end;
 
     (* initialize loggers before doing too much, especially anything that might exit *)
@@ -102,17 +105,18 @@ module CheckCommand = struct
 
     let client_include_warnings = error_flags.Errors.Cli_output.include_warnings in
 
-    let profiling, errors, warnings, suppressed_errors = Main.check_once
+    let profiling, errors, warnings, suppressed_errors = Server.check_once
       ~shared_mem_config ~client_include_warnings options in
     let suppressed_errors =
       if include_suppressed then suppressed_errors else [] in
     let printer =
-      if json || pretty then Json { pretty } else Cli error_flags in
+      if json || Option.is_some json_version || pretty then
+        Json { pretty; version = json_version }
+      else
+        Cli error_flags in
     print_errors ~printer ~profiling ~suppressed_errors options ~errors ~warnings;
     Flow_server_profile.print_url ();
-    if Errors.ErrorSet.is_empty errors
-      then FlowExitStatus.(exit No_error)
-      else FlowExitStatus.(exit Type_error)
+    FlowExitStatus.exit (get_check_or_status_exit_code errors warnings error_flags.Errors.Cli_output.max_warnings)
 
   let command = CommandSpec.command spec main
 end
@@ -125,16 +129,18 @@ module FocusCheckCommand = struct
       "and prints the results";
     args = CommandSpec.ArgSpec.(
         empty
+        |> base_flags
         |> error_flags
         |> flag "--include-suppressed" no_arg
           ~doc:"Ignore any `suppress_comment` lines in .flowconfig"
         |> options_and_json_flags
+        |> json_version_flag
         |> shm_flags
         |> ignore_version_flag
         |> from_flag
         |> root_flag
         |> input_file_flag "check"
-        |> anon "root" (list_of string) ~doc:"Root directory"
+        |> anon "root" (list_of string)
       );
     usage = Printf.sprintf
       "Usage: %s focus-check [OPTION]... [FILES/DIRS]\n\n\
@@ -148,20 +154,21 @@ module FocusCheckCommand = struct
   }
 
   let main
-      error_flags include_suppressed options_flags json pretty
+      base_flags error_flags include_suppressed options_flags json pretty json_version
       shm_flags ignore_version from root input_file filenames
       () =
 
     let filenames = get_filenames_from_input input_file filenames in
 
+    let flowconfig_name = base_flags.Base_flags.flowconfig_name in
     (* If --root is explicitly set, then use that as the root. Otherwise, use the first file *)
-    let root = CommandUtils.guess_root (
+    let root = CommandUtils.guess_root flowconfig_name (
       if root <> None
       then root
       else match filenames with [] -> None | x::_ -> Some x
     ) in
-    let flowconfig = FlowConfig.get (Server_files_js.config_file root) in
-    let options = make_options ~flowconfig ~lazy_mode:None ~root options_flags in
+    let flowconfig = FlowConfig.get (Server_files_js.config_file flowconfig_name root) in
+    let options = make_options ~flowconfig_name ~flowconfig ~lazy_mode:None ~root options_flags in
 
     (* initialize loggers before doing too much, especially anything that might exit *)
     LoggingUtils.init_loggers ~from ~options ();
@@ -182,16 +189,17 @@ module FocusCheckCommand = struct
       filenames
       FilenameSet.empty in
 
-    let profiling, errors, warnings, suppressed_errors = Main.check_once
+    let profiling, errors, warnings, suppressed_errors = Server.check_once
       ~shared_mem_config ~client_include_warnings ~focus_targets options in
     let suppressed_errors =
       if include_suppressed then suppressed_errors else [] in
     let printer =
-      if json || pretty then Json { pretty } else Cli error_flags in
+      if json || Option.is_some json_version || pretty then
+        Json { pretty; version = json_version }
+      else
+        Cli error_flags
+    in
     print_errors ~printer ~profiling ~suppressed_errors options ~errors ~warnings;
-    if Errors.ErrorSet.is_empty errors
-      then FlowExitStatus.(exit No_error)
-      else FlowExitStatus.(exit Type_error)
-
+    FlowExitStatus.exit (get_check_or_status_exit_code errors warnings error_flags.Errors.Cli_output.max_warnings)
   let command = CommandSpec.command spec main
 end

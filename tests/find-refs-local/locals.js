@@ -37,6 +37,8 @@ let { x, y } = { x: 0, y: 0 };
 let { x: _x, y: _y } = { x, y };
 ({ x: _x, y: _y });
 
+let { [x]: y } = { };
+
 // Not in scope
 wut1;
 wut1 = wut2;
@@ -63,3 +65,36 @@ export function exportedFunction(): void {}
 
 console.log(exportedConst);
 exportedFunction();
+
+import {ExternalClass} from './external';
+
+class SuperClass {
+  bar(): void {}
+  baz: string;
+}
+
+class SubClass extends SuperClass {}
+
+const superClass = new SuperClass();
+const subClass = new SubClass();
+const externalClass = new ExternalClass();
+
+superClass.bar();
+superClass.bar();
+superClass.baz;
+superClass.baz;
+
+subClass.bar();
+subClass.bar();
+subClass.baz;
+subClass.baz;
+
+externalClass.bar();
+externalClass.bar();
+
+class WithTypeParams<X, Y> {
+  bar(): void { }
+  baz(): void {
+    this.bar();
+  }
+}

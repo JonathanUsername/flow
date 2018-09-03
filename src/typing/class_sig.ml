@@ -5,139 +5,94 @@
  * LICENSE file in the root directory of this source tree.
  *)
 
-module Anno = Type_annotation
+module Ast = Flow_ast
+
 module Flow = Flow_js
 
 open Reason
 
-type field = Type.polarity * field'
-and field' = Annot of Type.t | Infer of Func_sig.t
+type set_asts =
+  (Loc.t, Loc.t * Type.t) Ast.Function.body option *
+  (Loc.t, Loc.t * Type.t) Ast.Expression.t option
+  -> unit
+
+type set_type = Type.t -> unit
+
+and field =
+  | Annot of Type.t
+  | Infer of Func_sig.t * set_asts
+
+type field' = Loc.t option * Type.polarity * field
+
+type func_info = Loc.t option * Func_sig.t * set_asts * set_type
 
 type signature = {
   reason: reason;
-  super: Type.t;
-  fields: field SMap.t;
-  private_fields: field SMap.t;
+  fields: field' SMap.t;
+  private_fields: field' SMap.t;
+  proto_fields: field' SMap.t;
   (* Multiple function signatures indicates an overloaded method. Note that
      function signatures are stored in reverse definition order. *)
-  methods: Func_sig.t Nel.t SMap.t;
-  getters: Func_sig.t SMap.t;
-  setters: Func_sig.t SMap.t;
+  methods: func_info Nel.t SMap.t;
+  getters: func_info SMap.t;
+  setters: func_info SMap.t;
+  calls: Type.t list;
+  call_deprecated: Type.t option;
 }
 
 type t = {
   id: int;
-  structural: bool;
   tparams: Type.typeparam list;
   tparams_map: Type.t SMap.t;
-  implements: Type.t list;
+  super: super;
   (* Multiple function signatures indicates an overloaded constructor. Note that
      function signatures are stored in reverse definition order. *)
-  constructor: Func_sig.t list;
+  constructor: func_info list;
   static: signature;
   instance: signature;
 }
 
-type super =
+and super =
   | Interface of {
-      extends: Type.t list;
+      extends: typeapp list;
       callable: bool;
-      static_callable: bool;
     }
   | Class of {
       extends: extends;
-      mixins: Type.t list; (* declare class only *)
-      implements: Type.t list
+      mixins: typeapp list; (* declare class only *)
+      implements: typeapp list
     }
 
 and extends =
-  | Explicit of Type.t
+  | Explicit of typeapp
   | Implicit of { null: bool }
 
+and typeapp = Loc.t * Type.t * Type.t list option
+
 let empty id reason tparams tparams_map super =
-  let empty_sig reason super = {
-    reason; super;
+  let empty_sig reason = {
+    reason;
     fields = SMap.empty;
     private_fields = SMap.empty;
+    proto_fields = SMap.empty;
     methods = SMap.empty;
     getters = SMap.empty;
     setters = SMap.empty;
+    calls = [];
+    call_deprecated = None;
   } in
-  let structural, super, ssuper, implements =
-    let open Type in
-    let super_reason = replace_reason (fun d -> RSuperOf d) reason in
-    match super with
-    | Interface {extends; callable; static_callable} ->
-      let super, ssuper = match extends with
-      | [] ->
-        ObjProtoT super_reason, ObjProtoT super_reason
-      | t0::ts ->
-        (* Interfaces support multiple inheritance. *)
-        let super = match ts with
-        | [] -> t0
-        | t1::ts -> DefT (super_reason, IntersectionT (InterRep.make t0 t1 ts))
-        in
-        super, class_type super
-      in
-      (* If the interface definition includes a callable property, add the
-         function prototype to the super type. *)
-      let super =
-        if callable
-        then
-          let rep = InterRep.make super (FunProtoT super_reason) [] in
-          DefT (super_reason, IntersectionT rep)
-        else super
-      in
-      (* This case exists to support the constructor_annots case (see
-         tests/constructor_annots), which allows users to case a function F to a
-         class-like type described by an interface with a static callable
-         property with (F: Class<I>). We should remove this feature and make
-         static callable properties on interfaces an error. *)
-      let ssuper =
-        if static_callable
-        then
-          let rep = InterRep.make ssuper (FunProtoT super_reason) [] in
-          DefT (super_reason, IntersectionT rep)
-        else ssuper
-      in
-      true, super, ssuper, []
-    | Class {extends; mixins; implements} ->
-      (* Class statics inherit properties from the function prototype, like
-         bind, call, and apply. Despite this, classes are generally not callable
-         without new (exceptions include cast functions like Number). *)
-      let super, ssuper = match extends with
-      | Explicit t -> t, class_type t
-      | Implicit { null } ->
-        (* The builtin Object class represents the top of the prototype chain,
-           so it's super type should be `null` to signify the end. *)
-        let super =
-          if null
-          then NullT.make super_reason
-          else ObjProtoT super_reason
-        in
-        super, FunProtoT super_reason
-      in
-      (* Classes also support multiple inheritance through mixins. Note that
-         mixins override explicit extends. *)
-      let super = match mixins with
-      | [] -> super
-      | t0::ts ->
-        let t1, ts = match ts with
-        | [] -> super, []
-        | t1::ts -> t1, ts@[super]
-        in
-        DefT (super_reason, IntersectionT (InterRep.make t0 t1 ts))
-      in
-      false, super, ssuper, implements
-  in
   let constructor = [] in
   let static =
     let reason = replace_reason (fun desc -> RStatics desc) reason in
-    empty_sig reason ssuper
+    empty_sig reason
   in
-  let instance = empty_sig reason super in
-  { id; structural; tparams; tparams_map; constructor; static; instance;
-    implements }
+  let instance = empty_sig reason in
+  { id; tparams; tparams_map; super; constructor; static; instance }
+
+let structural x =
+  match x.super with
+  | Interface _ -> true
+  | Class _ -> false
 
 let map_sig ~static f s =
   if static
@@ -147,74 +102,123 @@ let map_sig ~static f s =
 let with_sig ~static f s =
   if static then f s.static else f s.instance
 
-let add_private_field name fld = map_sig (fun s -> {
+let add_private_field name loc polarity field = map_sig (fun s -> {
   s with
-  private_fields = SMap.add name fld s.private_fields;
+  private_fields = SMap.add name (Some loc, polarity, field) s.private_fields;
 })
 
-let add_constructor fsig s =
-  {s with constructor = [fsig]}
+let add_constructor loc fsig ?(set_asts=ignore) ?(set_type=ignore) s =
+  {s with constructor = [loc, Func_sig.to_ctor_sig fsig, set_asts, set_type]}
 
 let add_default_constructor reason s =
   let fsig = Func_sig.default_constructor reason in
-  add_constructor fsig s
+  add_constructor None fsig s
 
-let append_constructor fsig s =
-  {s with constructor = fsig::s.constructor}
+let append_constructor loc fsig ?(set_asts=ignore) ?(set_type=ignore) s =
+  {s with constructor = (loc, Func_sig.to_ctor_sig fsig, set_asts, set_type)::s.constructor}
 
-let add_field ~static name fld = map_sig ~static (fun s -> {
-  s with
-  fields = SMap.add name fld s.fields;
-  methods = if static then SMap.remove name s.methods else s.methods;
-  getters = SMap.remove name s.getters;
-  setters = SMap.remove name s.setters;
-})
+let add_field' ~static name fld x =
+  let flat = static || structural x in
+  map_sig ~static (fun s -> {
+    s with
+    fields = SMap.add name fld s.fields;
+    proto_fields = if flat then SMap.remove name s.proto_fields else s.proto_fields;
+    methods = if flat then SMap.remove name s.methods else s.methods;
+    getters = if flat then SMap.remove name s.getters else s.getters;
+    setters = if flat then SMap.remove name s.setters else s.setters;
+  }) x
 
-let add_method ~static name fsig = map_sig ~static (fun s -> {
-  s with
-  fields = if static then SMap.remove name s.fields else s.fields;
-  methods = SMap.add name (Nel.one fsig) s.methods;
-  getters = SMap.remove name s.getters;
-  setters = SMap.remove name s.setters;
-})
+let add_field ~static name loc polarity field x =
+  add_field' ~static name (Some loc, polarity, field) x
+
+let add_indexer ~static polarity ~key ~value x =
+  let kloc, k = key in
+  let vloc, v = value in
+  x |> add_field ~static "$key" kloc polarity (Annot k)
+    |> add_field ~static "$value" vloc polarity (Annot v)
+
+let add_name_field x =
+  let r = replace_reason (fun desc -> RNameProperty desc) x.instance.reason in
+  let t = Type.StrT.why r in
+  add_field' ~static:true "name" (None, Type.Neutral, Annot t) x
+
+let add_proto_field name loc polarity field x =
+  map_sig ~static:false (fun s -> {
+    s with
+    proto_fields = SMap.add name (Some loc, polarity, field) s.proto_fields;
+    methods = SMap.remove name s.methods;
+    getters = SMap.remove name s.getters;
+    setters = SMap.remove name s.setters;
+  }) x
+
+let add_method ~static name loc fsig ?(set_asts=ignore) ?(set_type=ignore) x =
+  let flat = static || structural x in
+  let func_info = Some loc, fsig, set_asts, set_type in
+  map_sig ~static (fun s -> {
+    s with
+    fields = if flat then SMap.remove name s.fields else s.fields;
+    proto_fields = SMap.remove name s.proto_fields;
+    methods = SMap.add name (Nel.one func_info) s.methods;
+    getters = SMap.remove name s.getters;
+    setters = SMap.remove name s.setters;
+  }) x
 
 (* Appending a method builds a list of function signatures. This implements the
    bahvior of interfaces and declared classes, which interpret duplicate
    definitions as branches of a single overloaded method. *)
-let append_method ~static name fsig = map_sig ~static (fun s -> {
-  s with
-  fields = if static then SMap.remove name s.fields else s.fields;
-  methods = (
-    match SMap.get name s.methods with
-    | Some fsigs -> SMap.add name (Nel.cons fsig fsigs) s.methods
-    | None -> SMap.add name (Nel.one fsig) s.methods
-  );
-  getters = SMap.remove name s.getters;
-  setters = SMap.remove name s.setters;
-})
+let append_method ~static name loc fsig ?(set_asts=ignore) ?(set_type=ignore) x =
+  let flat = static || structural x in
+  let func_info = Some loc, fsig, set_asts, set_type in
+  map_sig ~static (fun s -> {
+    s with
+    fields = if flat then SMap.remove name s.fields else s.fields;
+    proto_fields = SMap.remove name s.proto_fields;
+    methods = (
+      match SMap.get name s.methods with
+      | Some fsigs -> SMap.add name (Nel.cons func_info fsigs) s.methods
+      | None -> SMap.add name (Nel.one func_info) s.methods
+    );
+    getters = SMap.remove name s.getters;
+    setters = SMap.remove name s.setters;
+  }) x
 
-let add_getter ~static name fsig = map_sig ~static (fun s -> {
-  s with
-  fields = if static then SMap.remove name s.fields else s.fields;
-  methods = SMap.remove name s.methods;
-  getters = SMap.add name fsig s.getters;
-})
+let append_call ~static t = map_sig ~static (fun s ->
+  (* Note that $call properties always override the call property syntax.
+     As before, if both are present, the $call property is used and the call
+     property is ignored. *)
+  match s.call_deprecated with
+  | None -> { s with calls = t :: s.calls }
+  | Some _ -> s
+)
 
-let add_setter ~static name fsig = map_sig ~static (fun s -> {
-  s with
-  fields = if static then SMap.remove name s.fields else s.fields;
-  methods = SMap.remove name s.methods;
-  setters = SMap.add name fsig s.setters;
-})
+let add_call_deprecated ~static t = map_sig ~static (fun s ->
+  (* Note that $call properties always override the call property syntax.
+     As before, if both are present, the $call property is used and the call
+     property is ignored. *)
+  { s with call_deprecated = Some t; calls = [] }
+)
 
-let mk_method cx ~expr x loc func =
-  Func_sig.mk cx x.tparams_map ~expr loc func
+let add_getter ~static name loc fsig ?(set_asts=ignore) ?(set_type=ignore) x =
+  let flat = static || structural x in
+  let func_info = Some loc, fsig, set_asts, set_type in
+  map_sig ~static (fun s -> {
+    s with
+    fields = if flat then SMap.remove name s.fields else s.fields;
+    proto_fields = SMap.remove name s.proto_fields;
+    methods = SMap.remove name s.methods;
+    getters = SMap.add name func_info s.getters;
+  }) x
 
-let mk_field cx ~polarity x reason typeAnnotation init =
-  polarity, match init with
-  | None -> Annot (Anno.mk_type_annotation cx x.tparams_map reason typeAnnotation)
-  | Some expr -> Infer (
-    Func_sig.field_initializer cx x.tparams_map reason expr typeAnnotation)
+let add_setter ~static name loc fsig ?(set_asts=ignore) ?(set_type=ignore) x =
+  let flat = static || structural x in
+  let func_info = Some loc, fsig, set_asts, set_type in
+  map_sig ~static (fun s -> {
+    s with
+    fields = if flat then SMap.remove name s.fields else s.fields;
+    proto_fields = SMap.remove name s.proto_fields;
+    methods = SMap.remove name s.methods;
+    setters = SMap.add name func_info s.setters;
+  }) x
 
 let mem_constructor {constructor; _} = constructor <> []
 
@@ -226,49 +230,90 @@ let iter_methods f s =
   SMap.iter (fun _ -> f) s.setters
 
 (* TODO? *)
-let subst_field cx map (polarity, field) =
-  polarity, match field with
+let subst_field cx map (loc, polarity, field) =
+  loc, polarity, match field with
   | Annot t -> Annot (Flow.subst cx map t)
-  | Infer fsig -> Infer (Func_sig.subst cx map fsig)
+  | Infer (fsig, set_asts) -> Infer (Func_sig.subst cx map fsig, set_asts)
 
-let subst_sig cx map s = {
-  reason = s.reason;
-  super = Flow.subst cx map s.super;
-  fields = SMap.map (subst_field cx map) s.fields;
-  private_fields = SMap.map (subst_field cx map) s.private_fields;
-  methods = SMap.map (Nel.map (Func_sig.subst cx map)) s.methods;
-  getters = SMap.map (Func_sig.subst cx map) s.getters;
-  setters = SMap.map (Func_sig.subst cx map) s.setters;
-}
+let subst_sig cx map s =
+  let subst_func_sig (loc, sig_, f, g) = (loc, Func_sig.subst cx map sig_, f, g) in
+  {
+    reason = s.reason;
+    fields = SMap.map (subst_field cx map) s.fields;
+    private_fields = SMap.map (subst_field cx map) s.private_fields;
+    proto_fields = SMap.map (subst_field cx map) s.proto_fields;
+    methods = SMap.map (Nel.map subst_func_sig) s.methods;
+    getters = SMap.map (subst_func_sig) s.getters;
+    setters = SMap.map (subst_func_sig) s.setters;
+    calls = List.map (Flow.subst cx map) s.calls;
+    call_deprecated = Option.map ~f:(Flow.subst cx map) s.call_deprecated;
+  }
+
+let subst_typeapp cx map (loc, c, targs) =
+  let c = Flow.subst cx map c in
+  let targs = Option.map ~f:(List.map (Flow.subst cx map)) targs in
+  (loc, c, targs)
+
+let subst_extends cx map = function
+  | Explicit tapp -> Explicit (subst_typeapp cx map tapp)
+  | Implicit {null=_} as extends -> extends
+
+let subst_super cx map = function
+  | Interface { extends; callable } ->
+    Interface {
+      extends = List.map (subst_typeapp cx map) extends;
+      callable;
+    }
+  | Class { extends; mixins; implements } ->
+    Class {
+      extends = subst_extends cx map extends;
+      mixins = List.map (subst_typeapp cx map) mixins;
+      implements = List.map (subst_typeapp cx map) implements;
+    }
 
 let generate_tests cx f x =
-  Flow.generate_tests cx x.instance.reason x.tparams (fun map -> f {
+  Flow.generate_tests cx x.tparams (fun map -> f {
     id = x.id;
-    structural = x.structural;
     tparams = x.tparams;
     tparams_map = SMap.map (Flow.subst cx map) x.tparams_map;
-    implements = List.map (Flow.subst cx map) x.implements;
-    constructor = List.map (Func_sig.subst cx map) x.constructor;
+    super = subst_super cx map x.super;
+    constructor =
+      List.map
+        (fun (loc, sig_, g, h) -> loc, Func_sig.subst cx map sig_, g, h)
+        x.constructor;
     static = subst_sig cx map x.static;
     instance = subst_sig cx map x.instance;
   })
 
-let to_field (polarity, field) =
+let to_field (loc, polarity, field) =
   let t = match field with
   | Annot t -> t
-  | Infer fsig -> Func_sig.gettertype fsig
+  | Infer (fsig, _) -> Func_sig.gettertype fsig
   in
-  Type.Field (t, polarity)
+  Type.Field (loc, t, polarity)
 
 let elements cx ?constructor s =
   let methods =
     (* If this is an overloaded method, create an intersection, attributed
        to the first declared function signature. If there is a single
        function signature for this method, simply return the method type. *)
-    SMap.map Type.(fun xs ->
-      match Nel.rev_map (Func_sig.methodtype cx) xs with
-      | t, [] -> t
-      | t0, t1::ts -> DefT (reason_of_t t0, IntersectionT (InterRep.make t0 t1 ts))
+    SMap.mapi Type.(fun name xs ->
+      let ms =
+        Nel.rev_map (fun (loc, x, _, set_type) -> loc, Func_sig.methodtype cx x, set_type) xs in
+      (* Keep track of these before intersections are merged, to enable
+       * type information on every member of the intersection. *)
+      ms |> Nel.iter (fun (loc, t, set_type) ->
+        Option.iter loc ~f:(fun loc ->
+          let id_info = name, t, Type_table.Other in
+          Type_table.set_info loc id_info (Context.type_table cx);
+          set_type t
+        )
+      );
+      match ms with
+      | (loc, t, _), [] -> loc, t
+      | (loc0, t0, _), (_, t1, _)::ts ->
+          let ts = List.map (fun (_loc, t, _) -> t) ts in
+          loc0, DefT (reason_of_t t0, IntersectionT (InterRep.make t0 t1 ts))
     ) s.methods
   in
 
@@ -280,61 +325,70 @@ let elements cx ?constructor s =
 
   (* If there is a both a getter and a setter, then flow the setter type to
      the getter. Otherwise just use the getter type or the setter type *)
-  let getters = SMap.map Func_sig.gettertype s.getters in
-  let setters = SMap.map Func_sig.settertype s.setters in
+  let getters =
+    SMap.map
+      (fun (loc, t, _, set_type) -> loc, Func_sig.gettertype t, set_type)
+      s.getters in
+  let setters =
+    SMap.map
+      (fun (loc, t, _, set_type) -> loc, Func_sig.settertype t, set_type)
+      s.setters in
+
+  (* Register getters and setters with the type table *)
+  let register_accessors = SMap.iter (fun name (loc, t, set_type) ->
+    Option.iter ~f:(fun loc ->
+      let id_info = name, t, Type_table.Other in
+      Type_table.set_info loc id_info (Context.type_table cx);
+      set_type t
+    ) loc
+  ) in
+  register_accessors getters;
+  register_accessors setters;
+
   let getters_and_setters = SMap.merge (fun _ getter setter ->
     match getter, setter with
-    | Some t1, Some t2 -> Some (Type.GetSet (t1, t2))
-    | Some t, None -> Some (Type.Get t)
-    | None, Some t -> Some (Type.Set t)
+    | Some (loc1, t1, _), Some (loc2, t2, _) -> Some (Type.GetSet (loc1, t1, loc2, t2))
+    | Some (loc, t, _), None -> Some (Type.Get (loc, t))
+    | None, Some (loc, t, _) -> Some (Type.Set (loc, t))
     | _ -> None
   ) getters setters in
 
   let fields = SMap.map to_field s.fields in
 
-  (* Treat getters and setters as fields *)
-  let fields = SMap.union getters_and_setters fields in
+  (* Register fields with the type table *)
+  SMap.iter (fun name fld ->
+    let loc_type_opt = match fld with
+    | Some loc, _, Annot t -> Some (loc, t)
+    | Some loc, _, Infer (func_sig, _) -> Some (loc, Func_sig.gettertype func_sig)
+    | _ -> None
+    in
+    Option.iter ~f:(fun (loc, t) ->
+      let id_info = name, t, Type_table.Other in
+      Type_table.set_info loc id_info (Context.type_table cx)
+    ) loc_type_opt
+  ) s.fields;
 
-  let methods = SMap.map (fun t -> Type.Method t) methods in
+  let methods = SMap.map (fun (loc, t) -> Type.Method (loc, t)) methods in
 
-  (* Only un-initialized fields require annotations, so determine now
-   * (syntactically) which fields have initializers *)
-  let initialized_field_names = SMap.fold (fun x (_, field) acc ->
-    match field with
-    | Annot _ -> acc
-    | Infer _ -> SSet.add x acc
-  ) s.fields SSet.empty in
+  (* Treat proto fields as methods, as they are on the proto object *)
+  let methods = SMap.fold (fun name fld acc ->
+    SMap.add name (to_field fld) acc
+  ) s.proto_fields methods in
 
-  initialized_field_names, fields, methods
+  (* Treat getters and setters as methods *)
+  let methods = SMap.union getters_and_setters methods in
 
-let arg_polarities x =
-  List.fold_left Type.(fun acc tp ->
-    SMap.add tp.name tp.polarity acc
-  ) SMap.empty x.tparams
+  (* Previously, call properties were stored in the props map under the key
+     $call. Unfortunately, this made it possible to specify call properties
+     using this syntax in interfaces, declared classes, and even normal classes.
 
-let statictype cx s =
-  let _, fields, methods = elements cx s in
-  let props = SMap.union fields methods
-    ~combine:(fun _ _ ->
-      Utils_js.assert_false (Utils_js.spf
-        "static fields and methods must be disjoint: %s"
-        (Debug_js.dump_reason cx s.reason)))
-  in
-  (* Statics are not exact, because we allow width subtyping between them.
-     Specifically, given class A and class B extends A, Class<B> <: Class<A>. *)
-  let static =
-    Obj_type.mk_with_proto cx s.reason ~props s.super
-      ~sealed:true ~exact:false
-  in
-  let open Type in
-  match static with
-  | DefT (_, ObjT o) -> o
-  | _ -> failwith "statics must be an ObjT"
-
-let insttype cx s =
-  let constructor =
-    let ts = List.rev_map (Func_sig.methodtype cx) s.constructor in
-    match ts with
+     Note that $call properties always override the call property syntax
+     As before, if both are present, the $call property is used and the call
+     property is ignored. *)
+  let call = match s.call_deprecated with
+  | Some t -> Some t
+  | None ->
+    match List.rev s.calls with
     | [] -> None
     | [t] -> Some t
     | t0::t1::ts ->
@@ -342,16 +396,84 @@ let insttype cx s =
       let t = DefT (reason_of_t t0, IntersectionT (InterRep.make t0 t1 ts)) in
       Some t
   in
-  let inited_fields, fields, methods = elements cx ?constructor s.instance in
+
+  (* Only un-initialized fields require annotations, so determine now
+   * (syntactically) which fields have initializers *)
+  let initialized_fields = SMap.fold (fun x (_, _, field) acc ->
+    match field with
+    | Annot _ -> acc
+    | Infer _ -> SSet.add x acc
+  ) s.fields SSet.empty in
+
+  initialized_fields, fields, methods, call
+
+let specialize cx targs c =
+  let open Type in
+  let reason = reason_of_t c in
+  Tvar.mk_derivable_where cx reason (fun tvar ->
+    Flow.flow cx (c, SpecializeT (unknown_use, reason, reason, None, targs, tvar))
+  )
+
+let statictype cx tparams_with_this x =
+  let s = x.static in
+  let inited_fields, fields, methods, call = elements cx s in
+  let props = SMap.union fields methods
+    ~combine:(fun _ _ ->
+      Utils_js.assert_false (Utils_js.spf
+        "static fields and methods must be disjoint: %s"
+        (Debug_js.dump_reason cx s.reason)))
+  in
+  let static_proto = match x.super with
+  | Interface _ -> Type.NullProtoT s.reason (* interfaces don't have statics *)
+  | Class { extends; _ } ->
+    match extends with
+    (* class B extends A {}; B.__proto__ === A *)
+    | Explicit (annot_loc, c, targs) ->
+      let this = SMap.find_unsafe "this" tparams_with_this in
+      (* Eagerly specialize when there are no targs *)
+      let c = if targs = None then specialize cx targs c else c in
+      Type.(class_type (this_typeapp ~annot_loc c this targs))
+    (* class A {}; A.__proto__ === Function.prototype *)
+    | Implicit _ -> Type.FunProtoT s.reason
+  in
+  (* Statics are not exact, because we allow width subtyping between them.
+     Specifically, given class A and class B extends A, Class<B> <: Class<A>. *)
+  let static =
+    Obj_type.mk_with_proto cx s.reason ~props ?call static_proto
+      ~sealed:true ~exact:false
+  in
+  let open Type in
+  match static with
+  | DefT (_, ObjT o) -> inited_fields, o
+  | _ -> failwith "statics must be an ObjT"
+
+let insttype cx ~initialized_static_fields s =
+  let constructor =
+    let ts = List.rev_map (fun (loc, t, _, _) -> loc, Func_sig.methodtype cx t) s.constructor in
+    match ts with
+    | [] -> None
+    | [x] -> Some x
+    | (loc0, t0)::(_loc1, t1)::ts ->
+      let ts = List.map snd ts in
+      let open Type in
+      let t = DefT (reason_of_t t0, IntersectionT (InterRep.make t0 t1 ts)) in
+      Some (loc0, t)
+  in
+  let type_args = List.map (fun {Type.name; reason; polarity; _} ->
+    let t = SMap.find_unsafe name s.tparams_map in
+    name, reason, t, polarity
+  ) s.tparams in
+  let initialized_fields, fields, methods, call = elements cx ?constructor s.instance in
   { Type.
     class_id = s.id;
-    type_args = s.tparams_map;
-    arg_polarities = arg_polarities s;
-    fields_tmap = Context.make_property_map cx fields;
-    initialized_field_names = inited_fields;
-    methods_tmap = Context.make_property_map cx methods;
-    mixins = false;
-    structural = s.structural;
+    type_args;
+    own_props = Context.make_property_map cx fields;
+    proto_props = Context.make_property_map cx methods;
+    inst_call_t = Option.map call ~f:(Context.make_call_prop cx);
+    initialized_fields;
+    initialized_static_fields;
+    has_unknown_react_mixins = false;
+    structural = structural s;
   }
 
 let add_this self cx reason tparams tparams_map =
@@ -363,501 +485,226 @@ let add_this self cx reason tparams tparams_map =
     | [] ->
       Flow.mk_instance cx reason self
     | _ ->
-      let tparams = List.map (fun tp -> Type.BoundT tp) tparams in
-      Type.typeapp self tparams
+      let targs = List.map (fun tp ->
+        let {Type.reason; name; polarity; _} = tp in
+        Type.BoundT (reason, name, polarity)
+      ) tparams in
+      Type.typeapp self targs
   in
+  let this_reason = replace_reason_const RThisType reason in
   let this_tp = { Type.
     name = "this";
-    reason = replace_reason_const RThisType reason;
+    reason = this_reason;
     bound = rec_instance_type;
     polarity = Type.Positive;
     default = None;
   } in
+  rec_instance_type,
   (* Add the type of `this` to the end of the list of type
      parameters. Remember, order is important, since we don't have recursive
      bounds (aka F-bounds): the bound of This refers to all the other type
      parameters! *)
   tparams@[this_tp],
-  SMap.add "this" (Type.BoundT this_tp) tparams_map
+  SMap.add "this" (Type.BoundT (this_reason, "this", Type.Positive)) tparams_map
 
 let remove_this x =
-  if x.structural then x else {
+  if structural x then x else {
     x with
     tparams = List.rev (List.tl (List.rev x.tparams));
     tparams_map = SMap.remove "this" x.tparams_map;
   }
 
+let supertype cx tparams_with_this x =
+  let super_reason = replace_reason (fun d -> RSuperOf d) x.instance.reason in
+  let open Type in
+  match x.super with
+  | Interface {extends; callable} ->
+    let extends = List.map (function
+    | loc, c, None ->
+      let reason = annot_reason (repos_reason loc (reason_of_t c)) in
+      Flow.mk_instance cx reason c
+    | annot_loc, c, Some targs -> typeapp ~annot_loc c targs
+    ) extends in
+    (* If the interface definition includes a callable property, add the
+       function prototype to the super type *)
+    let extends =
+      if callable
+      then (FunProtoT super_reason)::extends
+      else extends
+    in
+    (* Interfaces support multiple inheritance, which is modelled as an
+       intersection of super types. TODO: Instead of using an intersection for
+       this, we should resolve the extends and build a flattened type, and just
+       use FunProtoT/ObjProtoT as the prototype *)
+    (match extends with
+    | [] -> ObjProtoT super_reason
+    | [t] -> t
+    | t0::t1::ts -> DefT (super_reason, IntersectionT (InterRep.make t0 t1 ts)))
+  | Class {extends; mixins; _} ->
+    let this = SMap.find_unsafe "this" tparams_with_this in
+    let t = match extends with
+    | Explicit (annot_loc, c, targs) ->
+      (* Eagerly specialize when there are no targs *)
+      let c = if targs = None then specialize cx targs c else c in
+      this_typeapp ~annot_loc c this targs
+    | Implicit {null} ->
+      if null then NullProtoT super_reason else ObjProtoT super_reason
+    in
+    let mixins_rev = List.rev_map (fun (annot_loc, c, targs) ->
+      (* Eagerly specialize when there are no targs *)
+      let c = if targs = None then specialize cx targs c else c in
+      this_typeapp ~annot_loc c this targs
+    ) mixins in
+    match List.rev_append mixins_rev [t] with
+    | [] -> failwith "impossible"
+    | [t] -> t
+    | t0::t1::ts ->
+      DefT (super_reason, IntersectionT (InterRep.make t0 t1 ts))
+
 let thistype cx x =
+  let tparams_with_this = x.tparams_map in
   let x = remove_this x in
   let {
-    implements;
     static = {reason = sreason; _};
-    instance = {reason; super; _};
+    instance = {reason; _};
     _;
   } = x in
+  let super = supertype cx tparams_with_this x in
+  let implements = match x.super with
+  | Interface _ -> []
+  | Class {implements; _} ->
+    List.map (function
+      | loc, c, None ->
+        let reason = annot_reason (repos_reason loc (Type.reason_of_t c)) in
+        Flow.mk_instance cx reason c
+      | annot_loc, c, Some targs -> Type.typeapp ~annot_loc c targs
+    ) implements
+  in
+  let initialized_static_fields, static_objtype = statictype cx tparams_with_this x in
+  let insttype = insttype cx ~initialized_static_fields x in
   let open Type in
-  let static = DefT (sreason, ObjT (statictype cx x.static)) in
-  DefT (reason, InstanceT (static, super, implements, insttype cx x))
+  let static = DefT (sreason, ObjT static_objtype) in
+  DefT (reason, InstanceT (static, super, implements, insttype))
 
-let check_implements cx x =
-  let this = thistype cx x in
-  List.iter (fun i ->
-    Flow.flow cx (i, Type.(ImplementsT (UnknownUse, this)))
-  ) x.implements
+let check_implements cx def_reason x =
+  match x.super with
+  | Interface _ -> ()
+  | Class {implements; _} ->
+    let this = thistype cx x in
+    let reason = x.instance.reason in
+    let open Type in
+    List.iter (fun (loc, c, targs_opt) ->
+      let i = match targs_opt with
+      | None ->
+        let reason = annot_reason (repos_reason loc (reason_of_t c)) in
+        Flow.mk_instance cx reason c
+      | Some targs -> typeapp ~annot_loc:loc c targs
+      in
+      let use_op = Op (ClassImplementsCheck {
+        def = def_reason;
+        name = reason;
+        implements = reason_of_t i;
+      }) in
+      Flow.flow cx (i, ImplementsT (use_op, this))
+    ) implements
 
-let check_super cx x =
+let check_super cx def_reason x =
+  let tparams_with_this = x.tparams_map in
   let x = remove_this x in
   let reason = x.instance.reason in
   let open Type in
-  Flow.flow cx (x.static.super,
-    SuperT (reason, DerivedStatics (statictype cx x.static)));
-  Flow.flow cx (x.instance.super,
-    SuperT (reason, DerivedInstance (insttype cx x)))
+
+  (* NOTE: SuperT ignores the constructor anyway, so we don't pass it here.
+     Call properties are also ignored, so we ignore that result. *)
+  let _, own, proto, _call = elements cx ?constructor:None x.instance in
+  let static =
+    (* NOTE: The own, proto maps are disjoint by construction. *)
+    let _, own, proto, _call = elements cx x.static in
+    SMap.union own proto
+  in
+
+  SMap.iter (fun x p1 ->
+    match SMap.get x proto with
+    | None -> ()
+    | Some p2 ->
+      let use_op = Op (ClassOwnProtoCheck {
+        prop = x;
+        own_loc = Property.first_loc p1;
+        proto_loc = Property.first_loc p2;
+      }) in
+      let propref = Named (reason, x) in
+      Flow.flow_p cx ~use_op reason reason propref (p1, p2)
+  ) own;
+
+  let super = supertype cx tparams_with_this x in
+  let use_op = Op (ClassExtendsCheck {
+    def = def_reason;
+    name = reason;
+    extends = reason_of_t super;
+  }) in
+  Flow.flow cx (super, SuperT (use_op, reason, Derived {own; proto; static}))
 
 (* TODO: Ideally we should check polarity for all class types, but this flag is
    flipped off for interface/declare class currently. *)
 let classtype cx ?(check_polarity=true) x =
   let this = thistype cx x in
-  let { structural; tparams; _ } = remove_this x in
+  let { tparams; _ } = remove_this x in
   let open Type in
   (if check_polarity then Flow.check_polarity cx Positive this);
-  let t = if structural then class_type this else this_class_type this in
+  let t =
+    if structural x
+    then class_type ~structural:true this
+    else this_class_type this
+  in
   poly_type (Context.make_nominal cx) tparams t
-
-let mk_super cx tparams_map c targs = Type.(
-  (* A super class must be parameterized by This, so that it can be
-     specialized to this class and its subclasses when properties are looked
-     up on their instances. *)
-  let params = Anno.extract_type_param_instantiations targs in
-  let this = SMap.find_unsafe "this" tparams_map in
-  match params with
-  | None ->
-      (* No type params, but `c` could still be a polymorphic class that must
-         be implicitly instantiated. We need to do this before we try to
-         this-specialize `c`. *)
-      let reason = reason_of_t c in
-      let c = Tvar.mk_derivable_where cx reason (fun tvar ->
-        Flow.flow cx (c, SpecializeT (reason, reason, None, None, tvar))
-      ) in
-      this_typeapp c this None
-  | Some params ->
-      let tparams = List.map (Anno.convert cx tparams_map) params in
-      this_typeapp c this (Some tparams)
-)
-
-let mk_interface_super cx structural tparams_map (r, id, targs) =
-  let desc, lookup_mode =
-    if structural then "extends", Env.LookupMode.ForType
-    else "mixins", Env.LookupMode.ForValue in
-  let i = Anno.convert_qualification ~lookup_mode cx desc id in
-  if structural then
-    let params = Anno.extract_type_param_instantiations targs in
-    Anno.mk_nominal_type cx r tparams_map (i, params)
-  else mk_super cx tparams_map i targs
-
-let mk_extends cx tparams_map ~expr = function
-  | None, None -> Implicit { null = false }
-  | None, _ -> assert false (* type args with no head expr *)
-  | Some e, targs ->
-    let c = expr cx e in
-    Explicit (mk_super cx tparams_map c targs)
-
-let mk_mixins cx tparams_map (r, id, targs) =
-  let i =
-    let lookup_mode = Env.LookupMode.ForValue in
-    Anno.convert_qualification ~lookup_mode cx "mixins" id
-  in
-  let props_bag = Tvar.mk_derivable_where cx r (fun tvar ->
-    Flow.flow cx (i, Type.MixinT (r, tvar))
-  ) in
-  mk_super cx tparams_map props_bag targs
-
-let warn_or_ignore_decorators cx = function
-| [] -> ()
-| (start_loc, _)::ds ->
-  let loc = List.fold_left (fun start_loc (end_loc, _) ->
-    Loc.btwn start_loc end_loc
-  ) start_loc ds in
-  match Context.esproposal_decorators cx with
-  | Options.ESPROPOSAL_ENABLE -> failwith "Decorators cannot be enabled!"
-  | Options.ESPROPOSAL_IGNORE -> ()
-  | Options.ESPROPOSAL_WARN ->
-    Flow.add_output cx (Flow_error.EExperimentalDecorators loc)
-
-let warn_or_ignore_class_properties cx ~static loc =
-  let config_setting =
-    if static
-    then Context.esproposal_class_static_fields cx
-    else Context.esproposal_class_instance_fields cx
-  in
-  match config_setting with
-  | Options.ESPROPOSAL_ENABLE
-  | Options.ESPROPOSAL_IGNORE -> ()
-  | Options.ESPROPOSAL_WARN ->
-    Flow.add_output cx
-      (Flow_error.EExperimentalClassProperties (loc, static))
-
-let warn_unsafe_getters_setters cx loc =
-  if not (Context.enable_unsafe_getters_and_setters cx)
-  then Flow.add_output cx (Flow_error.EUnsafeGetSet loc)
-
-(* Process a class definition, returning a (polymorphic) class type. A class
-   type is a wrapper around an instance type, which contains types of instance
-   members, a pointer to the super instance type, and a container for types of
-   static members. The static members can be thought of as instance members of a
-   "metaclass": thus, the static type is itself implemented as an instance
-   type. *)
-let mk cx _loc reason self ~expr =
-  fun { Ast.Class.
-    body = (_, { Ast.Class.Body.body = elements });
-    superClass;
-    typeParameters;
-    superTypeParameters;
-    implements;
-    classDecorators;
-    _;
-  } ->
-
-  warn_or_ignore_decorators cx classDecorators;
-
-  let tparams, tparams_map =
-    Anno.mk_type_param_declarations cx typeParameters
-  in
-
-  let tparams, tparams_map =
-    add_this self cx reason tparams tparams_map
-  in
-
-  let class_sig =
-    let id = Context.make_nominal cx in
-    let extends =
-      mk_extends cx tparams_map ~expr (superClass, superTypeParameters)
-    in
-    let implements = List.map (fun (_, i) ->
-      let { Ast.Class.Implements.id = (loc, name); typeParameters } = i in
-      let reason = mk_reason (RCustom "implements") loc in
-      let c = Env.get_var ~lookup_mode:Env.LookupMode.ForType cx name loc in
-      let params = Anno.extract_type_param_instantiations typeParameters in
-      Anno.mk_nominal_type cx reason tparams_map (c, params)
-    ) implements in
-    let super = Class { extends; mixins = []; implements } in
-    empty id reason tparams tparams_map super
-  in
-
-  (* In case there is no constructor, pick up a default one. *)
-  let class_sig =
-    if superClass <> None
-    then
-      (* Subclass default constructors are technically of the form (...args) =>
-         { super(...args) }, but we can approximate that using flow's existing
-         inheritance machinery. *)
-      (* TODO: Does this distinction matter for the type checker? *)
-      class_sig
-    else
-      let reason = replace_reason_const RDefaultConstructor reason in
-      add_default_constructor reason class_sig
-  in
-
-  (* All classes have a static "name" property. *)
-  let class_sig =
-    let reason = replace_reason (fun desc -> RNameProperty desc) reason in
-    let t = Type.StrT.why reason in
-    add_field ~static:true "name" (Type.Neutral, Annot t) class_sig
-  in
-
-  (* NOTE: We used to mine field declarations from field assignments in a
-     constructor as a convenience, but it was not worth it: often, all that did
-     was exchange a complaint about a missing field for a complaint about a
-     missing annotation. Moreover, it caused fields declared in the super class
-     to be redeclared if they were assigned in the constructor. So we don't do
-     it. In the future, we could do it again, but only for private fields. *)
-
-  List.fold_left Ast.Class.(fun c -> function
-    (* instance and static methods *)
-    | Body.Property (_, {
-        Property.key = Ast.Expression.Object.Property.PrivateName _;
-        _
-      }) -> failwith "Internal Error: Found non-private field with private name"
-
-    | Body.Method (_, {
-        Method.key = Ast.Expression.Object.Property.PrivateName _;
-        _
-      }) -> failwith "Internal Error: Found method with private name"
-
-    | Body.Method (loc, {
-        Method.key = Ast.Expression.Object.Property.Identifier (_, name);
-        value = (_, func);
-        kind;
-        static;
-        decorators;
-      }) ->
-
-      warn_or_ignore_decorators cx decorators;
-
-      Ast.Class.Method.(match kind with
-      | Get | Set -> warn_unsafe_getters_setters cx loc
-      | _ -> ());
-
-      let add = match kind with
-      | Method.Constructor -> add_constructor
-      | Method.Method -> add_method ~static name
-      | Method.Get -> add_getter ~static name
-      | Method.Set -> add_setter ~static name
-      in
-      let method_sig = mk_method cx ~expr c loc func in
-      add method_sig c
-
-    (* fields *)
-    | Body.PrivateField(loc, {
-        PrivateField.key = (_, (_, name));
-        typeAnnotation;
-        value;
-        static;
-        variance;
-        _;
-      }) ->
-        if value <> None
-        then warn_or_ignore_class_properties cx ~static loc;
-
-        let reason = mk_reason (RProperty (Some name)) loc in
-        let polarity = Anno.polarity variance in
-        let field = mk_field cx ~polarity c reason typeAnnotation value in
-        add_private_field ~static name field c
-
-    | Body.Property (loc, {
-      Property.key = Ast.Expression.Object.Property.Identifier (_, name);
-        typeAnnotation;
-        value;
-        static;
-        variance;
-        _;
-      }) ->
-        if value <> None
-        then warn_or_ignore_class_properties cx ~static loc;
-
-        let reason = mk_reason (RProperty (Some name)) loc in
-        let polarity = Anno.polarity variance in
-        let field = mk_field cx ~polarity c reason typeAnnotation value in
-        add_field ~static name field c
-
-    (* literal LHS *)
-    | Body.Method (loc, {
-        Method.key = Ast.Expression.Object.Property.Literal _;
-        _
-      })
-    | Body.Property (loc, {
-        Property.key = Ast.Expression.Object.Property.Literal _;
-        _
-      }) ->
-        Flow.add_output cx
-          Flow_error.(EUnsupportedSyntax (loc, ClassPropertyLiteral));
-        c
-
-    (* computed LHS *)
-    | Body.Method (loc, {
-        Method.key = Ast.Expression.Object.Property.Computed _;
-        _
-      })
-    | Body.Property (loc, {
-        Property.key = Ast.Expression.Object.Property.Computed _;
-        _
-      }) ->
-        Flow.add_output cx
-          Flow_error.(EUnsupportedSyntax (loc, ClassPropertyComputed));
-        c
-  ) class_sig elements
-
-let extract_extends cx structural =
-  let rec loop acc first = function
-    | [] -> List.rev acc
-    | (loc, {Ast.Type.Generic.id; typeParameters})::rest ->
-      if structural || first then
-        let name = Anno.qualified_name id in
-        let r = mk_reason (RCustom name) loc in
-        loop ((r, id, typeParameters)::acc) false rest
-      else (
-        Flow.add_output cx Flow_error.(EUnsupportedSyntax
-          (loc, ClassExtendsMultiple));
-        loop acc false []
-      )
-  in
-  loop [] true
-
-let extract_mixins _cx =
-  List.map (fun (loc, {Ast.Type.Generic.id; typeParameters}) ->
-    let name = Anno.qualified_name id in
-    let r = mk_reason (RCustom name) loc in
-    r, id, typeParameters
-  )
-
-let is_object_builtin_libdef (loc, name) =
-  name = "Object" &&
-  match Loc.source loc with
-  | None -> false
-  | Some source -> File_key.is_lib_file source
-
-let mk_interface cx loc reason structural self = Ast.Statement.(
-  fun { Interface.
-    id = ident;
-    typeParameters;
-    body = (_, { Ast.Type.Object.properties; _ });
-    extends;
-    mixins;
-    _;
-  } ->
-
-  let tparams, tparams_map =
-    Anno.mk_type_param_declarations cx typeParameters in
-
-  let tparams, tparams_map =
-    if not structural
-    then add_this self cx reason tparams tparams_map
-    else tparams, tparams_map in
-
-  let iface_sig =
-    let id = Context.make_nominal cx in
-    let extends = List.map
-      (mk_interface_super cx structural tparams_map)
-      (extract_extends cx structural extends)
-    in
-    let mixins = List.map
-      (mk_mixins cx tparams_map)
-      (extract_mixins cx mixins)
-    in
-    let super =
-      if structural then
-        let callable = List.exists Ast.Type.Object.(function
-          | CallProperty (_, { CallProperty.static; _ }) -> not static
-          | _ -> false
-        ) properties in
-        let static_callable = List.exists Ast.Type.Object.(function
-          | CallProperty (_, { CallProperty.static; _ }) -> static
-          | _ -> false
-        ) properties in
-        Interface { extends; callable; static_callable }
-      else
-        let extends = match extends with
-        | [] -> Implicit { null = is_object_builtin_libdef ident }
-        | [t] -> Explicit t
-        | _ -> failwith "declare class with multiple extends"
-        in
-        Class { extends; mixins; implements = [] }
-    in
-    empty id reason tparams tparams_map super
-  in
-
-  let iface_sig =
-    let reason = replace_reason (fun desc -> RNameProperty desc) reason in
-    let t = Type.StrT.why reason in
-    add_field ~static:true "name" (Type.Neutral, Annot t) iface_sig
-  in
-
-  let iface_sig = List.fold_left Ast.Type.Object.(fun x -> function
-    | CallProperty (loc, { CallProperty.value = (_, func); static }) ->
-      let fsig = Func_sig.convert cx tparams_map loc func in
-      append_method ~static "$call" fsig x
-    | Indexer (loc, { Indexer.static; _ }) when mem_field ~static "$key" x ->
-      Flow.add_output cx
-        Flow_error.(EUnsupportedSyntax (loc, MultipleIndexers));
-      x
-    | Indexer (_, { Indexer.key; value; static; variance; _ }) ->
-      let k = Anno.convert cx tparams_map key in
-      let v = Anno.convert cx tparams_map value in
-      let polarity = Anno.polarity variance in
-      x
-        |> add_field ~static "$key" (polarity, Annot k)
-        |> add_field ~static "$value" (polarity, Annot v)
-    | Property (loc, { Property.key; value; static; _method; optional; variance; }) ->
-      if optional && _method
-      then Flow.add_output cx Flow_error.(EInternal (loc, OptionalMethod));
-      let polarity = Anno.polarity variance in
-      Ast.Expression.Object.(match _method, key, value with
-      | _, Property.Literal (loc, _), _
-      | _, Property.PrivateName (loc, _), _
-      | _, Property.Computed (loc, _), _ ->
-          Flow.add_output cx (Flow_error.EIllegalName loc);
-          x
-      | true, Property.Identifier (_, name),
-          Ast.Type.Object.Property.Init (_, Ast.Type.Function func) ->
-          let fsig = Func_sig.convert cx tparams_map loc func in
-          let append_method = match static, name with
-          | false, "constructor" -> append_constructor
-          | _ -> append_method ~static name
-          in
-          append_method fsig x
-
-      | true, Property.Identifier _, _ ->
-          Flow.add_output cx
-            Flow_error.(EInternal (loc, MethodNotAFunction));
-          x
-
-      | false, Property.Identifier (_, name),
-          Ast.Type.Object.Property.Init value ->
-          let t = Anno.convert cx tparams_map value in
-          let t = if optional then Type.optional t else t in
-          add_field ~static name (polarity, Annot t) x
-
-      (* unsafe getter property *)
-      | _, Property.Identifier (_, name),
-          Ast.Type.Object.Property.Get (_, func)
-            when Context.enable_unsafe_getters_and_setters cx ->
-          let fsig = Func_sig.convert cx tparams_map loc func in
-          add_getter ~static name fsig x
-
-      (* unsafe setter property *)
-      | _, Property.Identifier (_, name),
-          Ast.Type.Object.Property.Set (_, func)
-            when Context.enable_unsafe_getters_and_setters cx ->
-          let fsig = Func_sig.convert cx tparams_map loc func in
-          add_setter ~static name fsig x
-
-      | _, _, Ast.Type.Object.Property.Get _
-      | _, _, Ast.Type.Object.Property.Set _ ->
-          Flow.add_output cx
-            Flow_error.(EUnsupportedSyntax (loc, ObjectPropertyGetSet));
-          x
-      )
-
-    | SpreadProperty (loc, _) ->
-      Flow.add_output cx Flow_error.(EInternal (loc, InterfaceTypeSpread));
-      x
-  ) iface_sig properties in
-
-  (* Structural interfaces never get a default constructor. Non-structural
-   * (aka declare class) get a default constructor if they don't have a
-   * constructor and won't inherit one from a super *)
-  let inherits_constructor = extends <> [] || mixins <> [] in
-  if structural || mem_constructor iface_sig || inherits_constructor
-  then iface_sig
-  else
-    let reason = mk_reason RDefaultConstructor loc in
-    add_default_constructor reason iface_sig
-)
 
 (* Processes the bodies of instance and static class members. *)
 let toplevels cx ~decls ~stmts ~expr x =
   Env.in_lex_scope cx (fun () ->
-    let new_entry t = Scope.Entry.new_var ~loc:(Type.loc_of_t t) t in
+    let new_entry ?(state=Scope.State.Initialized) t =
+      Scope.Entry.new_let ~loc:(Type.loc_of_t t) ~state t
+    in
 
-    let method_ this super f =
+    let method_ this super ~set_asts f =
       let save_return = Abnormal.clear_saved Abnormal.Return in
       let save_throw = Abnormal.clear_saved Abnormal.Throw in
-      f |> Func_sig.generate_tests cx (
+      let asts = f |> Func_sig.generate_tests cx (
         Func_sig.toplevels None cx this super ~decls ~stmts ~expr
-      );
+      ) in
+      set_asts asts;
       ignore (Abnormal.swap_saved Abnormal.Return save_return);
       ignore (Abnormal.swap_saved Abnormal.Throw save_throw)
     in
 
-    let field config this super _name (_, value) =
+    let field config this super _name (_, _, value) =
       match config, value with
       | Options.ESPROPOSAL_IGNORE, _ -> ()
       | _, Annot _ -> ()
-      | _, Infer fsig -> method_ this super fsig
+      | _, Infer (fsig, set_asts) -> method_ this super ~set_asts fsig
     in
 
     let this = SMap.find_unsafe "this" x.tparams_map in
     let static = Type.class_type this in
+
+    let super, static_super =
+      let super_reason = replace_reason (fun d -> RSuperOf d) x.instance.reason in
+      match x.super with
+      | Interface _ -> failwith "tried to evaluate toplevel of interface"
+      | Class {extends; _} ->
+        match extends with
+        | Explicit (annot_loc, c, targs) ->
+          (* Eagerly specialize when there are no targs *)
+          (* TODO: We can also specialize when there are targs, because this
+             code executes within generate_tests. However, the type normalizer
+             expects a PolyT here. *)
+          let c = if targs = None then specialize cx targs c else c in
+          let t = Type.this_typeapp ~annot_loc c this targs in
+          t, Type.class_type t
+        | Implicit {null} ->
+          let open Type in
+          (if null then NullProtoT super_reason else ObjProtoT super_reason),
+          FunProtoT super_reason
+    in
 
     (* Bind private fields to the environment *)
     let to_prop_map = fun x -> Context.make_property_map cx (SMap.map to_field x) in
@@ -866,8 +713,8 @@ let toplevels cx ~decls ~stmts ~expr x =
 
     x |> with_sig ~static:true (fun s ->
       (* process static methods and fields *)
-      let this, super = new_entry static, new_entry s.super in
-      iter_methods (method_ this super) s;
+      let this, super = new_entry static, new_entry static_super in
+      iter_methods (fun (_loc, f, set_asts, _) -> method_ this super ~set_asts f) s;
       let config = Context.esproposal_class_static_fields cx in
       SMap.iter (field config this super) s.fields;
       SMap.iter (field config this super) s.private_fields
@@ -876,39 +723,35 @@ let toplevels cx ~decls ~stmts ~expr x =
     x |> with_sig ~static:false (fun s ->
       (* process constructor *)
       begin
-        (* When in a derived constructor, initialize this and super to undefined.
-           For internal names, we can afford to initialize with undefined and
-           fatten the declared type to allow undefined. This works because we
-           always look up the flow-sensitive type of internals, and don't havoc
-           them. However, the same trick wouldn't work for normal uninitialized
-           locals, e.g., so it cannot be used in general to track definite
-           assignments. *)
-        let derived_ctor = Type.(match s.super with
-          | DefT (_, ClassT (ObjProtoT _)) -> false
-          | ObjProtoT _ -> false
-          | _ -> true
-        ) in
+        (* When in a derived constructor, leave this and super undeclared, the
+           same way let-scoped variables are stored in the environment before
+           their declaration. Once we see a super() call, the bindings are
+           treated as declared and initialized. This protects against using
+           `this` before it is allocated by the superclass. *)
+        let derived_ctor = match x.super with
+          | Class {extends = Explicit _; _} -> true
+          | _ -> false
+        in
         let new_entry t =
           if derived_ctor then
-            let open Type in
-            let specific =
-              DefT (replace_reason_const RUninitializedThis (reason_of_t this), VoidT)
-            in
-            Scope.Entry.new_var ~loc:(loc_of_t t) ~specific (Type.optional t)
+            new_entry t ~state:Scope.State.Undeclared
           else
             new_entry t
         in
-        let this, super = new_entry this, new_entry s.super in
-        x.constructor |> List.iter (method_ this super)
+        let this, super = new_entry this, new_entry super in
+        x.constructor |> List.iter (fun (_, fsig, set_asts, _) ->
+          method_ this super ~set_asts fsig
+        )
       end;
 
       (* process instance methods and fields *)
       begin
-        let this, super = new_entry this, new_entry s.super in
-        iter_methods (method_ this super) s;
+        let this, super = new_entry this, new_entry super in
+        iter_methods (fun (_, msig, set_asts, _) -> method_ this super ~set_asts msig) s;
         let config = Context.esproposal_class_instance_fields cx in
         SMap.iter (field config this super) s.fields;
         SMap.iter (field config this super) s.private_fields;
+        SMap.iter (field config this super) s.proto_fields;
       end
   ))
 
@@ -922,7 +765,7 @@ module This = struct
   class detector = object
     inherit Flow_ast_mapper.mapper as super
 
-    method! generic_identifier_type (git: Loc.t Ast.Type.Generic.Identifier.t) =
+    method! generic_identifier_type (git: (Loc.t, Loc.t) Ast.Type.Generic.Identifier.t) =
       let open Ast.Type.Generic.Identifier in
       match git with
       | Unqualified (_, "this") -> raise FoundInClass
@@ -930,6 +773,9 @@ module This = struct
   end
 
   let in_class c =
-    try (new detector)#class_ c |> ignore; false
+    try (new detector)#class_ Loc.none c |> ignore; false
     with FoundInClass -> true
 end
+
+let with_typeparams cx f x =
+  Type_table.with_typeparams x.tparams (Context.type_table cx) f

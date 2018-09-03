@@ -2,9 +2,8 @@
  * Copyright (c) 2015, Facebook, Inc.
  * All rights reserved.
  *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the "hack" directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the "hack" directory of this source tree.
  *
  *)
 
@@ -29,7 +28,7 @@ let wait_on_server_restart ic =
 
 let send_version oc =
   Marshal_tools.to_fd_with_preamble (Unix.descr_of_out_channel oc)
-    Build_id.build_revision;
+    Build_id.build_revision |> ignore;
   (** For backwards-compatibility, newline has always followed the version *)
   let _ = Unix.write (Unix.descr_of_out_channel oc) "\n" 0 1 in
   ()
@@ -37,10 +36,12 @@ let send_version oc =
 let send_server_handoff_rpc handoff_options oc =
   Marshal_tools.to_fd_with_preamble (Unix.descr_of_out_channel oc)
     (MonitorRpc.HANDOFF_TO_SERVER handoff_options)
+  |> ignore
 
 let send_shutdown_rpc oc =
   Marshal_tools.to_fd_with_preamble (Unix.descr_of_out_channel oc)
     MonitorRpc.SHUT_DOWN
+  |> ignore
 
 let establish_connection ~timeout config =
   let sock_name = Socket.get_path config.socket_file in
@@ -72,7 +73,7 @@ let get_cstate config (ic, oc) =
 let verify_cstate ic cstate =
   match cstate with
   | Connection_ok -> Ok ()
-  | Build_id_mismatch | Build_id_mismatch_ex _ ->
+  | Build_id_mismatch_ex mismatch_info ->
       (* The server is out of date and is going to exit. Subsequent calls
        * to connect on the Unix Domain Socket might succeed, connecting to
        * the server that is about to die, and eventually we will be hung
@@ -83,22 +84,13 @@ let verify_cstate ic cstate =
        * has exited and the OS has cleaned up after it, then we try again.
        *
        * See also: ServerMonitor.client_out_of_date
-       *
-       * TODO: around September 2017, add an assert that the Build_id_mismatch
-       * form will never arise; only the _ex form will be emitted.
-       * At that point we can make Build_id_mismatched take a non-optional.
-       * Why that date? As of early July, the server started emitting only the
-       * _ex form. We'll give the change time to percolate, until no one
-       * will realistically be running the old form of the server, and by that
-       * time we can add the assert.
        *)
       wait_on_server_restart ic;
       Timeout.close_in_noerr ic;
-      let mismatch_info = match cstate with
-        | Build_id_mismatch_ex mismatch_info -> Some mismatch_info
-        | _ -> None
-      in
-      Error (Build_id_mismatched mismatch_info)
+      Error (Build_id_mismatched (Some mismatch_info))
+  | Build_id_mismatch ->
+      (* The server no longer ever sends this message, as of July 2017 *)
+      failwith "Ancient version of server sent old Build_id_mismatch"
 
 (** Consume sequence of Prehandoff messages. *)
 let rec consume_prehandoff_messages ic oc =
@@ -106,17 +98,18 @@ let rec consume_prehandoff_messages ic oc =
   let m: PH.msg = from_channel_without_buffering ic in
   match m with
   | PH.Sentinel -> Ok (ic, oc)
-  | PH.Server_name_not_found ->
-    Printf.eprintf
-      "Requested server name not found. This is probably a bug in Hack.";
-    raise (Exit_status.Exit_with (Exit_status.Server_name_not_found));
   | PH.Server_dormant_connections_limit_reached ->
     Printf.eprintf @@ "Connections limit on dormant server reached."^^
       " Be patient waiting for a server to be started.";
     Error Server_dormant
   | PH.Server_not_alive_dormant _ ->
-    Printf.eprintf "Waiting for a server to be started...\n%!";
+    Printf.eprintf "Waiting for a server to be started...%s\n%!"
+      ClientMessages.waiting_for_server_to_be_started_doc;
     consume_prehandoff_messages ic oc
+  | PH.Server_died_config_change ->
+    Printf.eprintf ("Last server exited due to config change. Please re-run client" ^^
+      " to force discovery of the correct version of the client.");
+    Error Server_died
   | PH.Server_died {PH.status; PH.was_oom} ->
     (match was_oom, status with
     | true, _ ->
@@ -127,6 +120,8 @@ let rec consume_prehandoff_messages ic oc =
       Printf.eprintf "Last server killed by signal: %d.\n%!" signal
     | false, Unix.WSTOPPED signal ->
       Printf.eprintf "Last server stopped by signal: %d.\n%!" signal);
+    (** Monitor will exit now that it has provided a client with a reason
+     * for the last server dying. Wait for the Monitor to exit. *)
     wait_on_server_restart ic;
     Error Server_died
 
@@ -287,7 +282,7 @@ let connect_once ~timeout config handoff_options =
   (* 5. SEND CONNECTION TYPE; READ RESPONSE. After this point we have        *)
   (* evidence that the server is able to handle our connection. The          *)
   (* connection type indicates Persistent vs Non-persistent.                 *)
-  (*   | reponse Denied_due_to_existing_persistent_connection.               *)
+  (*   | response Denied_due_to_existing_persistent_connection.               *)
   (*       -> "hh_client lsp" -> raise Lsp.Error_server_start.               *)
   (*   | catch any exception -> unhandled.                                   *)
   (***************************************************************************)

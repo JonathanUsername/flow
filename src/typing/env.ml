@@ -346,7 +346,6 @@ let cache_global cx name ?desc loc global_scope =
   in
   let entry = Entry.new_var t ~loc ~state:State.Initialized in
   Scope.add_entry name entry global_scope;
-  Context.add_global cx name;
   global_scope, entry
 
 let local_scope_entry_exists name =
@@ -480,6 +479,7 @@ let bind_entry cx name entry loc =
               (Var _ | Let FunctionBinding) -> true
             (* vars can shadow function params *)
             | Var _, Let ParamBinding -> true
+            | Var _, Let ConstlikeParamBinding -> true
             | Var _, Const ConstParamBinding -> true
             | _ -> false
           in
@@ -556,9 +556,7 @@ let bind_declare_fun =
       let scope = peek_scope () in
       match Scope.get_entry name scope with
       | None ->
-        let entry =
-          Entry.new_var t ~loc ~state:State.Initialized
-        in
+        let entry = Entry.new_var t ~loc ~state:State.Initialized in
         Scope.add_entry name entry scope
 
       | Some prev ->
@@ -569,7 +567,7 @@ let bind_declare_fun =
           let entry = Value { v with
             value_state = State.Initialized;
             specific = update_type v.specific t;
-            general = update_type v.general t
+            general = update_type v.general t;
           } in
           Scope.add_entry name entry scope
 
@@ -604,23 +602,27 @@ let declare_implicit_let kind =
 let declare_const = declare_value_entry Entry.(Const ConstVarBinding)
 
 let promote_to_const_like cx loc =
-(* Does Dep info says single dependence? *)
-(try
-  let open Dep_mapper in
-  let use_def_map = Context.use_def_map cx in
-  let dep_map = Context.dep_map cx in
-  let d = Utils_js.LocMap.find loc use_def_map in
-  let { Dep.typeDep=_; valDep } =
-    DepMap.find (DepKey.Id d) dep_map in
-    (match valDep with
-    | Dep.Depends l -> (List.length l) = 1
-    | Dep.Primitive -> true
-    | _ -> false)
-  with _ -> false)
+  try
+    let info, values = Context.use_def cx in
+    let uses = Scope_api.uses_of_use info loc in
+    (* We consider a binding to be const-like if all reads point to the same
+       write, modulo initialization. *)
+    let writes = LocSet.fold (fun use acc ->
+      match LocMap.get use values with
+        | None -> (* use is a write *) acc
+        | Some write_locs -> (* use is a read *)
+          (* collect writes pointed to by the read, modulo initialization *)
+          List.fold_left (fun acc -> function
+            | Ssa_api.Uninitialized -> acc
+            | Ssa_api.Write loc -> LocSet.add loc acc
+          ) acc write_locs
+    ) uses LocSet.empty in
+    LocSet.cardinal writes <= 1
+  with _ -> false
 
 (* helper - update var entry to reflect assignment/initialization *)
 (* note: here is where we understand that a name can be multiply var-bound *)
-let init_value_entry kind cx name ~has_anno specific loc =
+let init_value_entry kind cx ~use_op name ~has_anno specific loc =
   if not (is_excluded name)
   then Entry.(
     let scope, entry = find_entry cx name loc in
@@ -631,8 +633,9 @@ let init_value_entry kind cx name ~has_anno specific loc =
     | Const _, Value ({ Entry.kind = Const _;
         value_state = State.Undeclared | State.Declared; _ } as v) ->
       Changeset.change_var (scope.id, name, Changeset.Write);
-      if specific != v.general then
-        Flow.flow_t cx (specific, v.general);
+      if specific != v.general then (
+        Flow_js.flow cx (specific, UseT (use_op, v.general));
+      );
       (* note that annotation supercedes specific initializer type *)
       let new_kind =
         match kind with
@@ -642,7 +645,7 @@ let init_value_entry kind cx name ~has_anno specific loc =
         else kind
         | Let LetVarBinding ->
         if (promote_to_const_like cx loc)
-        then Entry.(Let LetConstlikeVarBinding)
+        then Entry.(Let ConstlikeLetVarBinding)
         else kind
         | _ -> kind in
       let value_binding = { v with
@@ -865,7 +868,7 @@ let get_refinement cx key loc =
   | _ -> None
 
 (* helper: update let or var entry *)
-let update_var ?(track_ref=false) op cx name specific loc =
+let update_var ?(track_ref=false) op cx ~use_op name specific loc =
   let scope, entry = find_entry cx name loc in
   if track_ref then Type_inference_hooks_js.dispatch_ref_hook cx
     (Entry.entry_loc entry) loc;
@@ -879,9 +882,9 @@ let update_var ?(track_ref=false) op cx name specific loc =
     let change = scope.id, name, op in
     Changeset.change_var change;
     let use_op = match op with
-    | Changeset.Write -> UnknownUse
-    | Changeset.Refine -> Internal Refinement
-    | Changeset.Read -> UnknownUse (* this is impossible *)
+    | Changeset.Write -> use_op
+    | Changeset.Refine -> use_op
+    | Changeset.Read -> unknown_use (* this is impossible *)
     in
     Flow.flow cx (specific, UseT (use_op, Entry.general_of_value v));
     (* add updated entry *)
@@ -917,10 +920,10 @@ let update_var ?(track_ref=false) op cx name specific loc =
 let set_var = update_var ~track_ref:true Changeset.Write
 
 let set_internal_var cx name t loc =
-  update_var ~track_ref:false Changeset.Write cx (internal_name name) t loc
+  update_var ~track_ref:false Changeset.Write cx ~use_op:unknown_use (internal_name name) t loc
 
 (* update var by refinement test *)
-let refine_var = update_var Changeset.Refine
+let refine_var = update_var Changeset.Refine ~use_op:(Op (Internal Refinement))
 
 (* set const's specific type to reflect a refinement test (internal) *)
 let refine_const cx name specific loc =
@@ -930,7 +933,7 @@ let refine_const cx name specific loc =
     let change = scope.id, name, Changeset.Refine in
     Changeset.change_var change;
     let general = Entry.general_of_value v in
-    Flow.flow cx (specific, UseT (Internal Refinement, general));
+    Flow.flow cx (specific, UseT (Op (Internal Refinement), general));
     let update = Value {
       v with value_state = State.Initialized; specific
     } in
@@ -986,10 +989,10 @@ let merge_env =
   in
 
   let create_union cx loc name l1 l2 =
-    let reason = mk_reason (RIdentifier name) loc in
+    let reason = mk_reason name loc in
     Tvar.mk_where cx reason (fun tvar ->
-      Flow.flow cx (l1, UseT (Internal MergeEnv, tvar));
-      Flow.flow cx (l2, UseT (Internal MergeEnv, tvar));
+      Flow.flow cx (l1, UseT (Op (Internal MergeEnv), tvar));
+      Flow.flow cx (l2, UseT (Op (Internal MergeEnv), tvar));
     )
   in
 
@@ -1006,7 +1009,7 @@ let merge_env =
     (* general case *)
     else
       let tvar = create_union cx loc name specific1 specific2 in
-      Flow.flow cx (tvar, UseT (Internal MergeEnv, general0));
+      Flow.flow cx (tvar, UseT (Op (Internal MergeEnv), general0));
       tvar
   in
 
@@ -1039,7 +1042,7 @@ let merge_env =
       let { specific = s0; general = g0; _ } = orig in
       let { specific = s1; _ } = child1 in
       let { specific = s2; _ } = child2 in
-      let specific = merge_specific cx loc name (s0, g0) s1 s2 in
+      let specific = merge_specific cx loc (RIdentifier name) (s0, g0) s1 s2 in
       let value_state = merge_states orig child1 child2 in
       (* replace entry if anything changed *)
       if specific == s0 && value_state = orig.value_state
@@ -1089,7 +1092,7 @@ let merge_env =
     match get scope0, get scope1, get scope2 with
     (* evenly distributed refinements are merged *)
     | Some base, Some child1, Some child2 ->
-      let name = Key.string_of_key key in
+      let name = Key.reason_desc key in
       let refined = merge_specific cx loc name (base.refined, base.original)
         child1.refined child2.refined in
       if refined == base.refined
@@ -1098,7 +1101,7 @@ let merge_env =
 
     (* refi was introduced in both children *)
     | None, Some child1, Some child2 ->
-      let name = Key.string_of_key key in
+      let name = Key.reason_desc key in
       let refined = create_union cx loc name child1.refined child2.refined in
       let original = create_union cx loc name child1.original child2.original in
       let refi = { refi_loc = loc; refined; original } in
@@ -1142,8 +1145,8 @@ let copy_env =
     (* for values, flow env2's specific type into env1's specific type *)
     | Some Value v1, Some Value v2 ->
       (* flow child2's specific type to child1 in place *)
-      Flow.flow cx (v2.specific, UseT (Internal CopyEnv, v1.specific));
-      (* udpate state *)
+      Flow.flow cx (v2.specific, UseT (Op (Internal CopyEnv), v1.specific));
+      (* update state *)
       if v1.value_state < State.Initialized
         && v2.value_state >= State.MaybeInitialized
       then (
@@ -1189,7 +1192,7 @@ let copy_env =
     match get scope0, get scope1 with
     (* flow child refi's type back to parent *)
     | Some { refined = t1; _ }, Some { refined = t2; _ } ->
-      Flow.flow cx (t2, UseT (Internal CopyEnv, t1))
+      Flow.flow cx (t2, UseT (Op (Internal CopyEnv), t1))
     (* uneven cases imply refi was added after splitting: remove *)
     | _ ->
       ()
@@ -1215,10 +1218,10 @@ let widen_env =
     if specific = general
     then None
     else
-      let reason = mk_reason (RIdentifier name) loc in
+      let reason = mk_reason name loc in
       let tvar = Tvar.mk cx reason in
-      Flow.flow cx (specific, UseT (Internal WidenEnv, tvar));
-      Flow.flow cx (tvar, UseT (Internal WidenEnv, general));
+      Flow.flow cx (specific, UseT (Op (Internal WidenEnv), tvar));
+      Flow.flow cx (tvar, UseT (Op (Internal WidenEnv), general));
       Some tvar
   in
 
@@ -1237,11 +1240,11 @@ let widen_env =
   fun cx loc ->
     iter_local_scopes (fun scope ->
       scope |> Scope.update_entries Entry.(fun name -> function
-        | Value var -> Value (widen_var cx loc name var)
+        | Value var -> Value (widen_var cx loc (RIdentifier name) var)
         | entry -> entry
       );
       scope |> Scope.update_refis (fun key refi ->
-        widen_refi cx loc (Key.string_of_key key) refi)
+        widen_refi cx loc (Key.reason_desc key) refi)
     )
 
 (* The protocol around havoc has changed a few times.
@@ -1342,14 +1345,10 @@ let refine_with_preds cx loc preds orig_types =
       Flow.flow cx (orig_type, PredicateT (pred, refined_type)))
   in
   let refine_with_pred key pred acc =
+    let refi_reason = mk_reason (RRefined (Key.reason_desc key)) loc in
     match key with
     (* for real consts/lets/vars, we model assignment/initialization *)
     | name, [] when not (is_internal_name name) ->
-      let refi_reason =
-        let pred_str = string_of_predicate pred in
-        let rstr = spf "identifier %s when %s" name pred_str in
-        mk_reason (RCustom rstr) loc
-      in
       Entry.(match find_entry cx name loc with
       | _, Value v ->
         let orig_type =
@@ -1364,18 +1363,12 @@ let refine_with_preds cx loc preds orig_types =
         | Some change -> Changeset.add_var change acc
         | None -> acc
         end
-      | _, entry ->
-        assert_false (
-          spf "attempt to refine %s %s" (Entry.string_of_kind entry) name)
+      | _, _ ->
+        Flow.add_output cx (FlowError.ERefineAsValue (refi_reason, name));
+        acc
       )
     (* for heap refinements, we just add new entries *)
     | _ ->
-      let refi_reason =
-        let pred_str = string_of_predicate pred in
-        let rstr = spf "expression %s when %s"
-          (Key.string_of_key key) pred_str in
-        mk_reason (RCustom rstr) loc
-      in
       let orig_type = Key_map.find_unsafe key orig_types in
       let refi_type = mk_refi_type orig_type pred refi_reason in
       let change = refine_expr key loc refi_type orig_type in

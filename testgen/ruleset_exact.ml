@@ -5,12 +5,11 @@
  * LICENSE file in the root directory of this source tree.
  *)
 
-module S = Ast.Statement;;
-module E = Ast.Expression;;
-module T = Ast.Type;;
-module P = Ast.Pattern;;
+module S = Flow_ast.Statement;;
+module E = Flow_ast.Expression;;
+module T = Flow_ast.Type;;
+module P = Flow_ast.Pattern;;
 module Utils = Flowtestgen_utils;;
-module FRandom = Utils.FRandom;;
 
 (* Show how to use exact types. *)
 open Ruleset_base;;
@@ -25,7 +24,7 @@ class ruleset_exact = object(self)
 
   method! weak_assert b = self#backtrack_on_false b
 
-  method! is_subtype_obj (o1 : Loc.t T.Object.t) (o2 : Loc.t T.Object.t) =
+  method! is_subtype_obj (o1 : (Loc.t, Loc.t) T.Object.t) (o2 : (Loc.t, Loc.t) T.Object.t) =
     let open T.Object in
     if (o1.exact && o2.exact) then
       o1 = o2
@@ -45,5 +44,5 @@ class ruleset_exact = object(self)
   class ruleset_random_exact = object
     inherit ruleset_exact
     method! weak_assert b =
-      if (not b) && ((FRandom.rint 3) > 0) then raise Engine.Backtrack
+      if (not b) && ((Random.int 3) > 0) then raise Engine.Backtrack
   end

@@ -7,44 +7,58 @@
 
 open Utils_js
 
-type 'a merge_results = (File_key.t * ('a, exn) result) list
+type 'a merge_job_results = (File_key.t * ('a, Flow_error.error_message) result) list
 type 'a merge_job =
+  worker_mutator: Context_heaps.Merge_context_mutator.worker_mutator ->
   options:Options.t ->
-  'a merge_results * File_key.t list ->
-  File_key.t list ->
-  'a merge_results * File_key.t list
+  'a merge_job_results ->
+  File_key.t Nel.t ->
+  'a merge_job_results
+
+type 'a merge_results = 'a merge_job_results * int (* skipped count *)
+
+type merge_strict_context_result = {
+  cx: Context.t;
+  other_cxs: Context.t list;
+  master_cx: Context.sig_t;
+  file_sigs: File_sig.t FilenameMap.t;
+}
 
 val merge_strict_context:
   options: Options.t ->
-  File_key.t list ->
-  Context.t * Context.t
+  File_key.t Nel.t ->
+  merge_strict_context_result
 
 val merge_contents_context:
   Options.t ->
   File_key.t ->
-  Loc.t Ast.program ->
+  (Loc.t, Loc.t) Flow_ast.program ->
   Docblock.t ->
-  ensure_checked_dependencies: (Modulename.Set.t -> unit) ->
-  Context.t
+  File_sig.t ->
+  Context.t * (Loc.t, Loc.t * Type.t) Flow_ast.program
 
 val merge_runner:
   job: 'a merge_job ->
-  intermediate_result_callback: ('a merge_results Lazy.t -> unit) ->
+  master_mutator: Context_heaps.Merge_context_mutator.master_mutator ->
+  worker_mutator: Context_heaps.Merge_context_mutator.worker_mutator ->
+  intermediate_result_callback: ('a merge_job_results Lazy.t -> unit) ->
   options: Options.t ->
-  workers: Worker.t list option ->
+  workers: MultiWorkerLwt.worker list option ->
   FilenameSet.t FilenameMap.t ->
-  (File_key.t list) FilenameMap.t ->
+  (File_key.t Nel.t) FilenameMap.t ->
   bool FilenameMap.t ->
-  'a merge_results
+  'a merge_results Lwt.t
 
 val merge_strict:
+  master_mutator: Context_heaps.Merge_context_mutator.master_mutator ->
+  worker_mutator: Context_heaps.Merge_context_mutator.worker_mutator ->
   intermediate_result_callback:
     ((Errors.ErrorSet.t *
       Error_suppressions.t *
-      ExactCover.lint_severity_cover) merge_results Lazy.t -> unit) ->
+      ExactCover.lint_severity_cover Utils_js.FilenameMap.t) merge_job_results Lazy.t -> unit) ->
   options: Options.t ->
-  workers: Worker.t list option ->
+  workers: MultiWorkerLwt.worker list option ->
   FilenameSet.t FilenameMap.t ->
-  (File_key.t list) FilenameMap.t ->
+  (File_key.t Nel.t) FilenameMap.t ->
   bool FilenameMap.t ->
-  (Errors.ErrorSet.t * Error_suppressions.t * ExactCover.lint_severity_cover) merge_results
+  (Errors.ErrorSet.t * Error_suppressions.t * ExactCover.lint_severity_cover Utils_js.FilenameMap.t) merge_results Lwt.t

@@ -1,23 +1,25 @@
 (** Intermediate representation for functions *)
 
-type t
+type kind =
+  | Ordinary
+  | Async
+  | Generator
+  | AsyncGenerator
+  | FieldInit of (Loc.t, Loc.t) Flow_ast.Expression.t
+  | Predicate
+  | Ctor
+
+type t = {
+  reason: Reason.t;
+  kind: kind;
+  tparams: Type.typeparam list;
+  tparams_map: Type.t SMap.t;
+  fparams: Func_params.t;
+  body: (Loc.t, Loc.t) Flow_ast.Function.body option;
+  return_t: Type.t;
+}
 
 (** 1. Constructors *)
-
-(** Create signature from function AST. *)
-val mk: Context.t ->
-  Type.t SMap.t -> (* type params map *)
-  expr:(Context.t -> Loc.t Ast.Expression.t -> Type.t) ->
-  Loc.t ->
-  Loc.t Ast.Function.t ->
-  t
-
-(** Create signature from function type AST. *)
-val convert: Context.t ->
-  Type.t SMap.t -> (* type params map *)
-  Loc.t ->
-  Loc.t Ast.Type.Function.t ->
-  t
 
 (** Create signature for a default constructor.
 
@@ -35,11 +37,10 @@ val default_constructor:
     from this module to evaluate the initializer in the appropriate context,
     where `this` and `super` point to the appropriate types. *)
 val field_initializer:
-  Context.t ->
   Type.t SMap.t -> (* type params map *)
   Reason.t ->
-  Loc.t Ast.Expression.t -> (* init *)
-  Loc.t Ast.Type.annotation option -> (* return type *)
+  (Loc.t, Loc.t) Flow_ast.Expression.t -> (* init *)
+  Type.t -> (* return *)
   t
 
 (** 1. Manipulation *)
@@ -58,23 +59,28 @@ val subst: Context.t ->
 
 (** Invoke callback with type parameters substituted by upper/lower bounds. *)
 val generate_tests: Context.t ->
-  (t -> unit) -> t -> unit
+  (t -> 'a) -> t -> 'a
 
 (** Evaluate the function.
 
     This function creates a new scope, installs bindings for the function's
     parameters and internal bindings (e.g., this, yield), processes the
     statements in the function body, and provides an implicit return type if
-    necessary *)
+    necessary. This is when the body of the function gets checked, so it also
+    returns a typed AST of the function body. *)
 val toplevels:
-  Loc.t Ast.Identifier.t option -> (* id *)
+  Loc.t Flow_ast.Identifier.t option -> (* id *)
   Context.t ->
   Scope.Entry.t -> (* this *)
   Scope.Entry.t -> (* super *)
-  decls:(Context.t -> Loc.t Ast.Statement.t list -> unit) ->
-  stmts:(Context.t -> Loc.t Ast.Statement.t list -> unit) ->
-  expr:(Context.t -> Loc.t Ast.Expression.t -> Type.t) ->
-  t -> unit
+  decls:(Context.t -> (Loc.t, Loc.t) Flow_ast.Statement.t list -> unit) ->
+  stmts:(Context.t -> (Loc.t, Loc.t) Flow_ast.Statement.t list ->
+                      (Loc.t, Loc.t * Type.t) Flow_ast.Statement.t list) ->
+  expr:(Context.t -> (Loc.t, Loc.t) Flow_ast.Expression.t ->
+                      (Loc.t, Loc.t * Type.t) Flow_ast.Expression.t) ->
+  t ->
+  (Loc.t, Loc.t * Type.t) Flow_ast.Function.body option *
+  (Loc.t, Loc.t * Type.t) Flow_ast.Expression.t option
 
 (** 1. Type Conversion *)
 
@@ -101,4 +107,7 @@ val settertype: t -> Type.t
 (** 1. Util *)
 
 (** The location of the return type for a function. *)
-val return_loc: Loc.t Ast.Function.t -> Loc.t
+val return_loc: (Loc.t, Loc.t) Flow_ast.Function.t -> Loc.t
+val to_ctor_sig: t -> t
+
+val with_typeparams: Context.t -> (unit -> 'a) -> t -> 'a

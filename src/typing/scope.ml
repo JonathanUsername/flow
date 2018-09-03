@@ -55,11 +55,12 @@ module Entry = struct
 
   and let_binding_kind =
     | LetVarBinding
-    | LetConstlikeVarBinding
+    | ConstlikeLetVarBinding
     | ClassNameBinding
     | CatchParamBinding
     | FunctionBinding
     | ParamBinding
+    | ConstlikeParamBinding
 
   and var_binding_kind =
     | VarBinding
@@ -70,11 +71,12 @@ module Entry = struct
   | Const ConstParamBinding -> "const param"
   | Const ConstVarBinding -> "const"
   | Let LetVarBinding -> "let"
-  | Let LetConstlikeVarBinding -> "let"
+  | Let ConstlikeLetVarBinding -> "let"
   | Let ClassNameBinding -> "class"
   | Let CatchParamBinding -> "catch"
   | Let FunctionBinding -> "function"
   | Let ParamBinding -> "param"
+  | Let ConstlikeParamBinding -> "param"
   | Var VarBinding -> "var"
   | Var ConstlikeVarBinding -> "var"
 
@@ -119,7 +121,7 @@ module Entry = struct
       value_declare_loc;
       value_assign_loc = value_declare_loc;
       specific;
-      general
+      general;
     }
 
   let new_const ~loc ?(state=State.Undeclared) ?(kind=ConstVarBinding) t =
@@ -197,7 +199,9 @@ module Entry = struct
       entry
     | Value { kind = Var ConstlikeVarBinding; _ } ->
       entry
-    | Value { kind = Let LetConstlikeVarBinding; _ } ->
+    | Value { kind = Let ConstlikeLetVarBinding; _ } ->
+      entry
+    | Value { kind = Let ConstlikeParamBinding; _ } ->
       entry
     | Value v ->
       if Reason.is_internal_name name
@@ -233,6 +237,7 @@ type var_scope_kind =
   | Module          (* module scope *)
   | Global          (* global scope *)
   | Predicate       (* predicate function *)
+  | Ctor            (* constructor *)
 
 let string_of_var_scope_kind = function
 | Ordinary -> "Ordinary"
@@ -242,6 +247,7 @@ let string_of_var_scope_kind = function
 | Module -> "Module"
 | Global -> "Global"
 | Predicate -> "Predicate"
+| Ctor -> "Constructor"
 
 (* var and lexical scopes differ in hoisting behavior
    and auxiliary properties *)
@@ -264,11 +270,20 @@ type refi_binding = {
 (* scopes are tagged by id, which are shared by clones. function
    types hold the id of their activation scopes. *)
 (* TODO add in-scope type variable binding table *)
+(* when the typechecker is constructing the typed AST, declare functions are
+   processed separately from (before) when most statements are processed. To
+   be able to put the typed ASTs of the type annotations that were on the
+   declare functions into the spots where they go in the typed AST, we put
+   the declare functions' type annotations' typed ASTs in the scope during the
+   earlier pass when the declare functions are processed, then during the
+   second pass when the full typed AST is being constructed, we get them from
+   the scope and put them where they belong in the typed AST. *)
 type t = {
   id: int;
   kind: kind;
   mutable entries: Entry.t SMap.t;
   mutable refis: refi_binding Key_map.t;
+  mutable declare_func_annots: (Loc.t, Loc.t * Type.t) Flow_ast.Type.annotation SMap.t;
 }
 
 (* ctor helper *)
@@ -277,6 +292,7 @@ let fresh_impl kind = {
   kind;
   entries = SMap.empty;
   refis = Key_map.empty;
+  declare_func_annots = SMap.empty;
 }
 
 (* return a fresh scope of the most common kind (var) *)
@@ -289,8 +305,8 @@ let fresh_lex () = fresh_impl LexScope
 (* clone a scope: snapshot mutable entries.
    NOTE: tvars (OpenT) are essentially refs, and are shared by clones.
  *)
-let clone { id; kind; entries; refis } =
-  { id; kind; entries; refis }
+let clone { id; kind; entries; refis; declare_func_annots } =
+  { id; kind; entries; refis; declare_func_annots }
 
 (* use passed f to iterate over all scope entries *)
 let iter_entries f scope =
@@ -376,6 +392,12 @@ let havoc scope =
 let reset loc scope =
   havoc_all_refis scope;
   update_entries (Entry.reset loc) scope
+
+let add_declare_func_annot name annot scope =
+  scope.declare_func_annots <- SMap.add name annot scope.declare_func_annots
+
+let get_declare_func_annot name scope =
+  SMap.get name scope.declare_func_annots
 
 let is_lex scope =
   match scope.kind with

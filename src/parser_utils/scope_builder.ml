@@ -5,6 +5,8 @@
  * LICENSE file in the root directory of this source tree.
  *)
 
+module Ast = Flow_ast
+
 open Flow_ast_visitor
 open Hoister
 open Scope_api
@@ -14,7 +16,7 @@ module LocMap = Utils_js.LocMap
 class with_or_eval_visitor = object(this)
   inherit [bool] visitor ~init:false as super
 
-  method! expression (expr: Loc.t Ast.Expression.t) =
+  method! expression (expr: (Loc.t, Loc.t) Ast.Expression.t) =
     let open Ast.Expression in
     if this#acc = true then expr else match expr with
     | (_, Call { Call.callee = (_, Identifier (_, "eval")); _}) ->
@@ -22,10 +24,10 @@ class with_or_eval_visitor = object(this)
       expr
     | _ -> super#expression expr
 
-  method! statement (stmt: Loc.t Ast.Statement.t) =
+  method! statement (stmt: (Loc.t, Loc.t) Ast.Statement.t) =
     if this#acc = true then stmt else super#statement stmt
 
-  method! with_ (stuff: Loc.t Ast.Statement.With.t) =
+  method! with_ _loc (stuff: (Loc.t, Loc.t) Ast.Statement.With.t) =
     this#set_acc true;
     stuff
 end
@@ -105,8 +107,8 @@ class scope_builder = object(this)
     });
     result
 
-  method with_bindings: 'a. ?lexical:bool -> Bindings.t -> ('a -> 'a) -> 'a -> 'a =
-    fun ?(lexical=false) bindings visit node ->
+  method with_bindings: 'a. ?lexical:bool -> Loc.t -> Bindings.t -> ('a -> 'a) -> 'a -> 'a =
+    fun ?(lexical=false) loc bindings visit node ->
       let save_counter = counter in
       let save_uses = uses in
       let old_env = env in
@@ -115,104 +117,117 @@ class scope_builder = object(this)
       uses <- [];
       current_scope_opt <- Some child;
       env <- Env.mk_env (fun () -> this#next) old_env bindings;
-      let node' = visit node in
+      let result = Core_result.try_with (fun () -> visit node) in
       this#update_acc (fun acc ->
+        let defs = Env.defs env in
+        let locals = SMap.fold (fun _ def locals ->
+          Nel.fold_left (fun locals loc -> LocMap.add loc def locals) locals def.Def.locs
+        ) defs LocMap.empty in
         let locals, globals = List.fold_left (fun (locals, globals) (loc, x) ->
           match Env.get x env with
           | Some def -> LocMap.add loc def locals, globals
           | None -> locals, SSet.add x globals
-        ) (LocMap.empty, SSet.empty) uses in
-        let defs = Env.defs env in
-        let scopes = IMap.add child { Scope.lexical; parent; defs; locals; globals; } acc.scopes in
+        ) (locals, SSet.empty) uses in
+        let scopes = IMap.add child { Scope.lexical; parent; defs; locals; globals; loc; } acc.scopes in
         { acc with scopes }
       );
       uses <- save_uses;
       current_scope_opt <- parent;
       env <- old_env;
       counter <- save_counter;
-      node'
+      Core_result.ok_exn result
 
   method! identifier (expr: Loc.t Ast.Identifier.t) =
     uses <- expr::uses;
     expr
 
+  method! jsx_identifier (id: Loc.t Ast.JSX.Identifier.t) =
+    let open Ast.JSX.Identifier in
+    let loc, {name} = id in
+    uses <- (loc, name)::uses;
+    id
+
   (* don't rename the `foo` in `x.foo` *)
   method! member_property_identifier (id: Loc.t Ast.Identifier.t) = id
+
+  (* don't rename the `foo` in `const {foo: bar} = x` *)
+  method! pattern_object_property_identifier_key ?kind id = ignore kind; id
 
   (* don't rename the `foo` in `{ foo: ... }` *)
   method! object_key_identifier (id: Loc.t Ast.Identifier.t) = id
 
-  method! block (stmt: Loc.t Ast.Statement.Block.t) =
+  method! block loc (stmt: (Loc.t, Loc.t) Ast.Statement.Block.t) =
     let lexical_hoist = new lexical_hoister in
-    let lexical_bindings = lexical_hoist#eval lexical_hoist#block stmt in
-    this#with_bindings ~lexical:true lexical_bindings super#block stmt
+    let lexical_bindings = lexical_hoist#eval (lexical_hoist#block loc) stmt in
+    this#with_bindings ~lexical:true loc lexical_bindings (super#block loc) stmt
 
   (* like block *)
-  method! program (program: Loc.t Ast.program) =
+  method! program (program: (Loc.t, Loc.t) Ast.program) =
+    let loc, _, _ = program in
     let lexical_hoist = new lexical_hoister in
     let lexical_bindings = lexical_hoist#eval lexical_hoist#program program in
-    this#with_bindings ~lexical:true lexical_bindings super#program program
+    this#with_bindings ~lexical:true loc lexical_bindings super#program program
 
-  method private scoped_for_in_statement (stmt: Loc.t Ast.Statement.ForIn.t) =
-    super#for_in_statement stmt
+  method private scoped_for_in_statement loc (stmt: (Loc.t, Loc.t) Ast.Statement.ForIn.t) =
+    super#for_in_statement loc stmt
 
-  method! for_in_statement (stmt: Loc.t Ast.Statement.ForIn.t) =
+  method! for_in_statement loc (stmt: (Loc.t, Loc.t) Ast.Statement.ForIn.t) =
     let open Ast.Statement.ForIn in
     let { left; right = _; body = _; each = _ } = stmt in
 
     let lexical_hoist = new lexical_hoister in
     let lexical_bindings = match left with
-    | LeftDeclaration (_, decl) ->
-      lexical_hoist#eval lexical_hoist#variable_declaration decl
+    | LeftDeclaration (loc, decl) ->
+      lexical_hoist#eval (lexical_hoist#variable_declaration loc) decl
     | LeftPattern _ -> Bindings.empty
     in
-    this#with_bindings ~lexical:true lexical_bindings this#scoped_for_in_statement stmt
+    this#with_bindings ~lexical:true loc lexical_bindings (this#scoped_for_in_statement loc) stmt
 
-  method private scoped_for_of_statement (stmt: Loc.t Ast.Statement.ForOf.t) =
-    super#for_of_statement stmt
+  method private scoped_for_of_statement loc (stmt: (Loc.t, Loc.t) Ast.Statement.ForOf.t) =
+    super#for_of_statement loc stmt
 
-  method! for_of_statement (stmt: Loc.t Ast.Statement.ForOf.t) =
+  method! for_of_statement loc (stmt: (Loc.t, Loc.t) Ast.Statement.ForOf.t) =
     let open Ast.Statement.ForOf in
     let { left; right = _; body = _; async = _ } = stmt in
 
     let lexical_hoist = new lexical_hoister in
     let lexical_bindings = match left with
-    | LeftDeclaration (_, decl) ->
-      lexical_hoist#eval lexical_hoist#variable_declaration decl
+    | LeftDeclaration (loc, decl) ->
+      lexical_hoist#eval (lexical_hoist#variable_declaration loc) decl
     | LeftPattern _ -> Bindings.empty
     in
-    this#with_bindings ~lexical:true lexical_bindings this#scoped_for_of_statement stmt
+    this#with_bindings ~lexical:true loc lexical_bindings (this#scoped_for_of_statement loc) stmt
 
-  method private scoped_for_statement (stmt: Loc.t Ast.Statement.For.t) =
-    super#for_statement stmt
+  method private scoped_for_statement loc (stmt: (Loc.t, Loc.t) Ast.Statement.For.t) =
+    super#for_statement loc stmt
 
-  method! for_statement (stmt: Loc.t Ast.Statement.For.t) =
+  method! for_statement loc (stmt: (Loc.t, Loc.t) Ast.Statement.For.t) =
     let open Ast.Statement.For in
     let { init; test = _; update = _; body = _ } = stmt in
 
     let lexical_hoist = new lexical_hoister in
     let lexical_bindings = match init with
-    | Some (InitDeclaration (_, decl)) ->
-      lexical_hoist#eval lexical_hoist#variable_declaration decl
+    | Some (InitDeclaration (loc, decl)) ->
+      lexical_hoist#eval (lexical_hoist#variable_declaration loc) decl
     | _ -> Bindings.empty
     in
-    this#with_bindings ~lexical:true lexical_bindings this#scoped_for_statement stmt
+    this#with_bindings ~lexical:true loc lexical_bindings (this#scoped_for_statement loc) stmt
 
-  method! catch_clause (clause: Loc.t Ast.Statement.Try.CatchClause.t') =
+  method! catch_clause loc (clause: (Loc.t, Loc.t) Ast.Statement.Try.CatchClause.t') =
     let open Ast.Statement.Try.CatchClause in
     let { param; body = _ } = clause in
 
-    this#with_bindings (
-      let open Ast.Pattern in
-      let _, patt = param in
-      match patt with
-      | Identifier { Identifier.name; _ } -> Bindings.singleton name
-      | _ -> (* TODO *)
-        Bindings.empty
-    ) super#catch_clause clause
+    (* hoisting *)
+    let lexical_bindings = match param with
+      | Some p ->
+        let lexical_hoist = new lexical_hoister in
+        lexical_hoist#eval lexical_hoist#catch_clause_pattern p
+      | None -> Bindings.empty
+      in
+    this#with_bindings ~lexical:true loc lexical_bindings (super#catch_clause loc) clause
 
   (* helper for function params and body *)
-  method private lambda params body =
+  method private lambda loc params body =
     let open Ast.Function in
 
     (* hoisting *)
@@ -221,65 +236,65 @@ class scope_builder = object(this)
       let (_loc, { Params.params = param_list; rest = _rest }) = params in
       run_list hoist#function_param_pattern param_list;
       match body with
-        | BodyBlock (_loc, block) ->
-          run hoist#block block
+        | BodyBlock (block_loc, block) ->
+          run (hoist#block block_loc) block
         | _ ->
           ()
     end;
 
-    this#with_bindings hoist#acc (fun () ->
+    this#with_bindings loc hoist#acc (fun () ->
       let (_loc, { Params.params = param_list; rest }) = params in
       run_list this#function_param_pattern param_list;
       run_opt this#function_rest_element rest;
       begin match body with
-      | BodyBlock (_, block) ->
-        run this#block block
+      | BodyBlock (block_loc, block) ->
+        run (this#block block_loc) block
       | BodyExpression expr ->
         run this#expression expr
       end;
     ) ()
 
-  method! function_declaration (expr: Loc.t Ast.Function.t) =
+  method! function_declaration loc (expr: (Loc.t, Loc.t) Ast.Function.t) =
     let contains_with_or_eval =
       let visit = new with_or_eval_visitor in
-      visit#eval visit#function_declaration expr
+      visit#eval (visit#function_declaration loc) expr
     in
 
     if not contains_with_or_eval then begin
       let open Ast.Function in
       let {
         id; params; body; async = _; generator = _; expression = _;
-        predicate = _; returnType = _; typeParameters = _;
+        predicate = _; return = _; tparams = _;
       } = expr in
 
       run_opt this#function_identifier id;
 
-      this#lambda params body;
+      this#lambda loc params body;
     end;
 
     expr
 
   (* Almost the same as function_declaration, except that the name of the
      function expression is locally in scope. *)
-  method! function_ (expr: Loc.t Ast.Function.t) =
+  method! function_ loc (expr: (Loc.t, Loc.t) Ast.Function.t) =
     let contains_with_or_eval =
       let visit = new with_or_eval_visitor in
-      visit#eval visit#function_ expr
+      visit#eval (visit#function_ loc) expr
     in
 
     if not contains_with_or_eval then begin
       let open Ast.Function in
       let {
         id; params; body; async = _; generator = _; expression = _;
-        predicate = _; returnType = _; typeParameters = _;
+        predicate = _; return = _; tparams = _;
       } = expr in
 
       let bindings = match id with
         | Some name -> Bindings.singleton name
         | None -> Bindings.empty in
-      this#with_bindings bindings (fun () ->
+      this#with_bindings loc ~lexical:true bindings (fun () ->
         run_opt this#function_identifier id;
-        this#lambda params body;
+        this#lambda loc params body;
       ) ();
     end;
 
@@ -287,9 +302,12 @@ class scope_builder = object(this)
 end
 
 let program ?(ignore_toplevel=false) program =
+  let loc, _, _ = program in
   let walk = new scope_builder in
-  if ignore_toplevel then walk#eval walk#program program
-  else
-    let hoist = new hoister in
-    let bindings = hoist#eval hoist#program program in
-    walk#eval (walk#with_bindings bindings walk#program) program
+  let bindings =
+    if ignore_toplevel then Bindings.empty
+    else
+      let hoist = new hoister in
+      hoist#eval hoist#program program
+  in
+  walk#eval (walk#with_bindings loc bindings walk#program) program

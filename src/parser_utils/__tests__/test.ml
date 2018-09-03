@@ -12,6 +12,9 @@ let tests = "parser_utils" >::: [
   Comment_attacher_test.tests;
   Ssa_builder_test.tests;
   File_sig_test.tests;
+  File_exports_resolver_test.tests;
+  Flow_ast_differ_test.tests;
+  Signature_verifier_test.tests;
 ]
 
 let () = run_test_tt_main tests
