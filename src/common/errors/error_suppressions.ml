@@ -126,23 +126,24 @@ let check err suppressions severity_cover unused =
   let is_in_dependency =
     let primary_loc = Errors.loc_of_error err in
     Option.value_map (Loc.source primary_loc) ~default:false ~f:(fun filename ->
-      String_utils.is_substring "/node_modules/" (File_key.to_string filename))
+      String_utils.is_substring "/node_modules/" (File_key.to_string filename) 
+    )
   in
-let is_lint_warning = is_in_dependency && (Option.is_some lint_kind) in
-let is_whitelisted = match Errors.loc_of_error err with
-  | primary_loc ->
+  let is_lint_warning = is_in_dependency && (Option.is_some lint_kind) in
+  let is_whitelisted = 
+    let primary_loc = Errors.loc_of_error err in
     Option.value_map (Loc.source primary_loc) ~default:false ~f:(fun filename ->
       Whitelisting.filename_in_whitelist filename
     )
-in
-let result = match Errors.kind_of_error err with
-| Errors.RecursionLimitError ->
-  (* TODO: any related suppressions should not be considered used *)
-  Err
-| _ -> if is_lint_warning || is_whitelisted
-  then Off (* TODO: this should not show up with --include-suppressed *)
-  else result
-in Some (result, used, unused)
+  in
+  let result = match Errors.kind_of_error err with
+  | Errors.RecursionLimitError ->
+    (* TODO: any related suppressions should not be considered used *)
+    Err
+  | _ -> if is_lint_warning || is_whitelisted
+    then Off (* TODO: this should not show up with --include-suppressed *)
+    else result
+  in Some (result, used, unused)
 
 
 (* Gets the locations of the suppression comments that are yet unused *)
