@@ -129,7 +129,6 @@ let check err suppressions severity_cover unused =
       String_utils.is_substring "/node_modules/" (File_key.to_string filename))
   in
 let is_lint_warning = is_in_dependency && (Option.is_some lint_kind) in
-let open Errors.Friendly in
 let is_whitelisted = match Errors.loc_of_error err with
   | primary_loc ->
     Option.value_map (Loc.source primary_loc) ~default:false ~f:(fun filename ->

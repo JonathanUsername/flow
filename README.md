@@ -1,6 +1,22 @@
-NB: For future Jon - Just use this for creating the changes.patch file that is then applied in the flow-bin repo.
+NB: For future Jon - Go to the branch/release you want, just change error_suppressions until you get this passing:
 
-Go to the branch/release you want, try to apply the standard patch, if it conflicts, overwrite the old one in flow-bin, then run the build script.
+```
+# if the compiler version has changed 
+opam switch $version
+
+opam update
+opam pin add flowtype . -n
+opam install --deps-only flowtype
+make clean
+make
+
+# cd to the mixcloud/website/js folder and run the command. YMMV if dir structure is different or you are not Jon. You will likely also need to change the version in .flowconfig
+
+../../../../JonathanUsername/flow/bin/flow check
+
+or, to check node_modules are being ignored, something like:
+FLOW_WHITELIST='node_modules' ../../../../JonathanUsername/flow/bin/flow check --show-all-errors | grep 'node_modules'
+```
 
 
 # Flow [![Build Status](https://travis-ci.org/facebook/flow.svg?branch=master)](https://travis-ci.org/facebook/flow) [![Windows Build Status](https://ci.appveyor.com/api/projects/status/thyvx6i5nixtoocm/branch/master?svg=true)](https://ci.appveyor.com/project/Facebook/flow/branch/master)
